@@ -13,6 +13,7 @@
 #include <linux/xiaomi_touch.h>
 #include <poll.h>
 #include <sys/ioctl.h>
+#include <vector>
 
 #include "SensorNotifierUtils.h"
 
@@ -34,6 +35,8 @@ class NonUiSensorCallback : public IEventQueueCallback {
     }
 
     Return<void> onEvent(const Event& e) {
+        if (touch_fd_.get() == -1) return Void();
+
         struct touch_mode_request request = {
                 .mode = TOUCH_MODE_NONUI_MODE,
                 .value = static_cast<int>(e.u.scalar),
@@ -58,6 +61,11 @@ NonUiNotifier::~NonUiNotifier() {
 }
 
 void NonUiNotifier::notify() {
+    if (mQueue == nullptr) {
+        LOG(ERROR) << "mQueue is null, cannot notify";
+        mActive = false;
+        return;
+    }
 
     // Enable states of touchscreen sensors
     const std::vector<const char*> paths = {
@@ -65,29 +73,37 @@ void NonUiNotifier::notify() {
             "/sys/class/touch/touch_dev/gesture_single_tap_enabled",
             "/sys/class/touch/touch_dev/gesture_double_tap_enabled"};
 
-    pollfd* pollfds = new pollfd[paths.size()];
-    for (size_t i = 0; i < paths.size(); ++i) {
-        int fd = open(paths[i], O_RDONLY);
-        if (fd < 0) {
-            LOG(ERROR) << "failed to open " << paths[i] << " , err: " << fd;
-            mActive = false;
-            return;
-        }
+    std::vector<android::base::unique_fd> fds;
+    std::vector<pollfd> pollfds;
 
-        pollfds[i].fd = fd;
-        pollfds[i].events = POLLPRI;
+    for (const char* path : paths) {
+        int fd = open(path, O_RDONLY);
+        if (fd < 0) {
+            // It's normal for side-fps devices like marble to miss FOD paths
+            LOG(INFO) << "Skipping missing path: " << path;
+            continue;
+        }
+        fds.emplace_back(fd);
+        pollfds.push_back({fd, POLLPRI, 0});
+    }
+
+    if (pollfds.empty()) {
+        LOG(ERROR) << "No touch sensor paths found. Exiting notify.";
+        mActive = false;
+        return;
     }
 
     while (mActive) {
-        int rc = poll(pollfds, paths.size(), -1);
+        int rc = poll(pollfds.data(), pollfds.size(), 1000); // 1000ms timeout to prevent deadlocks
         if (rc < 0) {
             LOG(ERROR) << "failed to poll, err: " << rc;
             continue;
         }
+        if (rc == 0) continue; // Timeout, loop again to check mActive flag
 
         bool enabled = false;
-        for (size_t i = 0; i < paths.size(); ++i) {
-            enabled = enabled || readBool(pollfds[i].fd);
+        for (const auto& pfd : pollfds) {
+            enabled = enabled || readBool(pfd.fd);
         }
         if (enabled) {
             if (!mQueue->enableSensor(mSensorHandle, 20000 /* sample period */, 0 /* latency */).isOk()) {

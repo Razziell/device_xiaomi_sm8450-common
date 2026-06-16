@@ -7,6 +7,7 @@
 #pragma once
 
 #include <unordered_set>
+#include <mutex>
 
 #include "SensorNotifier.h"
 
@@ -15,6 +16,7 @@ class AodNotifier : public SensorNotifier {
     AodNotifier(sp<ISensorManager> manager);
     ~AodNotifier();
     inline static std::unordered_set<__u32> activeDisplays{};
+    inline static std::mutex displayMutex{};
 
   protected:
     void notify();

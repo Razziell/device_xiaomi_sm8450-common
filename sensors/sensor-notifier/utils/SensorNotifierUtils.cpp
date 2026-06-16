@@ -9,6 +9,8 @@
 #include "SensorNotifierUtils.h"
 
 #include <android-base/logging.h>
+#include <algorithm>
+#include <cstring>
 
 bool readBool(int fd) {
     char c;
@@ -37,24 +39,35 @@ std::shared_ptr<disp_event_resp> parseDispEvent(int fd) {
         return nullptr;
     }
 
-    std::shared_ptr<disp_event_resp> response(static_cast<disp_event_resp*>(malloc(header.length)),
-                                              free);
+    int dataLength = header.length - sizeof(header);
+    if (dataLength < 0) {
+        LOG(ERROR) << "invalid data length: " << header.length;
+        return nullptr;
+    }
+
+    // Allocate enough memory to prevent OOB read when accessing response->data[0] on empty payload
+    size_t allocSize = std::max<size_t>(header.length, sizeof(disp_event_resp));
+    std::shared_ptr<disp_event_resp> response(
+            static_cast<disp_event_resp*>(malloc(allocSize)), free);
+
     if (!response) {
         LOG(ERROR) << "failed to allocate memory for display event response";
         return nullptr;
     }
+
     response->base = header;
 
-    int dataLength = response->base.length - sizeof(response->base);
-    if (dataLength < 0) {
-        LOG(ERROR) << "invalid data length: " << response->base.length;
-        return nullptr;
+    // Zero-initialize payload area to prevent garbage values
+    if (allocSize > sizeof(disp_event)) {
+        memset(response->data, 0, allocSize - sizeof(disp_event));
     }
 
-    ssize_t dataSize = read(fd, &response->data, dataLength);
-    if (dataSize < dataLength) {
-        LOG(ERROR) << "unexpected display event data size: " << dataSize;
-        return nullptr;
+    if (dataLength > 0) {
+        ssize_t dataSize = read(fd, response->data, dataLength);
+        if (dataSize < dataLength) {
+            LOG(ERROR) << "unexpected display event data size: " << dataSize;
+            return nullptr;
+        }
     }
 
     return response;

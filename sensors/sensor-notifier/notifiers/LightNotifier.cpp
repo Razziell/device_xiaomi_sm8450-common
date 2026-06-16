@@ -82,14 +82,14 @@ void LightNotifier::notify() {
             .events = POLLIN,
     };
 
-    _oem_msg msg;
+    _oem_msg msg = {}; // Zero-initialize to prevent stack memory leak to sscalapi
     notify_t notifyType;
     float value;
 
     while (mActive) {
-        int rc = poll(&dispEventPoll, 1, -1);
-        if (rc < 0) {
-            LOG(ERROR) << "failed to poll " << kDispFeatureDevice << ", err: " << rc;
+        int rc = poll(&dispEventPoll, 1, 1000); // 1000ms timeout to prevent shutdown deadlock
+        if (rc <= 0) {
+            if (rc < 0) LOG(ERROR) << "failed to poll " << kDispFeatureDevice << ", err: " << rc;
             continue;
         }
 

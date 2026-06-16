@@ -8,6 +8,7 @@
 
 #include <android-base/logging.h>
 #include <android-base/properties.h>
+#include <unistd.h>
 
 #include "SensorNotifierExt.h"
 #include "SscCalApi.h"
@@ -40,10 +41,8 @@ int main() {
     }
 
     while (true) {
-        // Sleep to keep the notifiers alive
-        std::this_thread::sleep_for(std::chrono::seconds(10));
+        pause();
     }
 
-    // Should never reach this
     return EXIT_SUCCESS;
 }
