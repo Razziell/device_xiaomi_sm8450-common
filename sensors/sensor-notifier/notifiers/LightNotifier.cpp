@@ -9,30 +9,60 @@
 #include "LightNotifier.h"
 
 #include <android-base/logging.h>
+#include <android-base/parseint.h>
 #include <android-base/properties.h>
 #include <android-base/unique_fd.h>
+#include <cerrno>
+#include <cstring>
 #include <display/drm/mi_disp.h>
 #include <poll.h>
+#include <sstream>
 #include <sys/ioctl.h>
+#include <vector>
 
 #include "SensorNotifierUtils.h"
 #include "SscCalApi.h"
 
-static const std::string kDispFeatureDevice = "/dev/mi_display/disp_feature";
+static const std::string kDispFeatureDevice =
+        "/dev/mi_display/disp_feature";
 
-LightNotifier::LightNotifier(sp<ISensorManager> manager) : SensorNotifier(manager) {
-    std::stringstream lightSensorsPrimary(
-            android::base::GetProperty("ro.vendor.sensors.notifier.light_sensors.primary", ""));
-    std::stringstream lightSensorsSecondary(
-            android::base::GetProperty("ro.vendor.sensors.notifier.light_sensors.secondary", ""));
+namespace {
 
+void parseSensorList(const std::string& propertyValue,
+                     std::vector<int>* sensorList) {
+    std::stringstream stream(propertyValue);
     std::string sensor;
-    while (std::getline(lightSensorsPrimary, sensor, ',')) {
-        mLightSensorsPrimary.push_back(std::stoi(sensor));
+
+    while (std::getline(stream, sensor, ',')) {
+        if (sensor.empty()) {
+            continue;
+        }
+
+        int sensorId;
+        if (!android::base::ParseInt(sensor, &sensorId)) {
+            LOG(ERROR) << "invalid light sensor ID: " << sensor;
+            continue;
+        }
+
+        sensorList->push_back(sensorId);
     }
-    while (std::getline(lightSensorsSecondary, sensor, ',')) {
-        mLightSensorsSecondary.push_back(std::stoi(sensor));
-    }
+}
+
+}  // namespace
+
+LightNotifier::LightNotifier(sp<ISensorManager> manager)
+    : SensorNotifier(manager) {
+    parseSensorList(
+            android::base::GetProperty(
+                    "ro.vendor.sensors.notifier.light_sensors.primary",
+                    ""),
+            &mLightSensorsPrimary);
+
+    parseSensorList(
+            android::base::GetProperty(
+                    "ro.vendor.sensors.notifier.light_sensors.secondary",
+                    ""),
+            &mLightSensorsSecondary);
 }
 
 LightNotifier::~LightNotifier() {
@@ -40,17 +70,19 @@ LightNotifier::~LightNotifier() {
 }
 
 void LightNotifier::notify() {
-    if (mLightSensorsPrimary.empty() && mLightSensorsSecondary.empty()) {
-        LOG(DEBUG) << "no light sensors to notify defined, skip light notifications";
-        mActive = false;
+    if (mLightSensorsPrimary.empty() &&
+            mLightSensorsSecondary.empty()) {
+        LOG(DEBUG) << "no light sensors to notify defined, "
+                   << "skip light notifications";
         return;
     }
 
     android::base::unique_fd disp_fd_ =
-            android::base::unique_fd(open(kDispFeatureDevice.c_str(), O_RDWR));
+            android::base::unique_fd(
+                    open(kDispFeatureDevice.c_str(), O_RDWR));
     if (disp_fd_.get() == -1) {
-        LOG(ERROR) << "failed to open " << kDispFeatureDevice;
-        mActive = false;
+        PLOG(ERROR) << "failed to open "
+                    << kDispFeatureDevice;
         return;
     }
 
@@ -62,51 +94,111 @@ void LightNotifier::notify() {
         displays.push_back(MI_DISP_SECONDARY);
     }
 
-    const std::vector<disp_event_type> notifyEvents = {MI_DISP_EVENT_POWER, MI_DISP_EVENT_FPS,
-                                                       MI_DISP_EVENT_51_BRIGHTNESS,
-                                                       MI_DISP_EVENT_HBM, MI_DISP_EVENT_DC};
+    const std::vector<disp_event_type> notifyEvents = {
+            MI_DISP_EVENT_POWER,
+            MI_DISP_EVENT_FPS,
+            MI_DISP_EVENT_51_BRIGHTNESS,
+            MI_DISP_EVENT_HBM,
+            MI_DISP_EVENT_DC,
+    };
 
     // Register for events
     for (const disp_display_type& display : displays) {
         for (const disp_event_type& event : notifyEvents) {
-            disp_event_req req;
+            disp_event_req req = {};
             req.base.flag = 0;
             req.base.disp_id = display;
             req.type = event;
-            ioctl(disp_fd_.get(), MI_DISP_IOCTL_REGISTER_EVENT, &req);
+
+            if (ioctl(disp_fd_.get(),
+                      MI_DISP_IOCTL_REGISTER_EVENT,
+                      &req) < 0) {
+                PLOG(ERROR) << "failed to register display event "
+                            << static_cast<int>(event)
+                            << " for display "
+                            << static_cast<int>(display);
+            }
         }
     }
 
-    struct pollfd dispEventPoll = {
-            .fd = disp_fd_.get(),
-            .events = POLLIN,
+    struct pollfd pollfds[] = {
+            {
+                    .fd = disp_fd_.get(),
+                    .events = POLLIN,
+                    .revents = 0,
+            },
+            {
+                    .fd = stopEventFd(),
+                    .events = POLLIN,
+                    .revents = 0,
+            },
     };
 
-    _oem_msg msg = {}; // Zero-initialize to prevent stack memory leak to sscalapi
+    // Zero-initialize to avoid leaking stack data to sscalapi.
+    _oem_msg msg = {};
     notify_t notifyType;
     float value;
 
-    while (mActive) {
-        int rc = poll(&dispEventPoll, 1, 1000); // 1000ms timeout to prevent shutdown deadlock
-        if (rc <= 0) {
-            if (rc < 0) LOG(ERROR) << "failed to poll " << kDispFeatureDevice << ", err: " << rc;
+    while (isActive()) {
+        int rc = poll(pollfds, 2, -1);
+        if (rc < 0) {
+            if (errno == EINTR) {
+                continue;
+            }
+
+            PLOG(ERROR) << "failed to poll "
+                        << kDispFeatureDevice;
+            break;
+        }
+
+        if (pollfds[1].revents & POLLIN) {
+            consumeStopEvent();
+            break;
+        }
+
+        if (pollfds[1].revents &
+                (POLLERR | POLLHUP | POLLNVAL)) {
+            LOG(ERROR) << "stop eventfd failed, revents="
+                       << pollfds[1].revents;
+            break;
+        }
+
+        if (pollfds[0].revents &
+                (POLLERR | POLLHUP | POLLNVAL)) {
+            LOG(ERROR) << "display event fd failed, revents="
+                       << pollfds[0].revents;
+            break;
+        }
+
+        if (!(pollfds[0].revents & POLLIN)) {
             continue;
         }
 
-        std::shared_ptr<disp_event_resp> response = parseDispEvent(disp_fd_.get());
+        std::shared_ptr<disp_event_resp> response =
+                parseDispEvent(disp_fd_.get());
         if (response == nullptr) {
             continue;
         }
 
-        std::vector<int>& sensorsToNotify = mLightSensorsPrimary;
+        /*
+         * A C++ reference cannot be rebound. Use a pointer instead of
+         * assigning mLightSensorsSecondary to a reference initially
+         * bound to mLightSensorsPrimary.
+         */
+        const std::vector<int>* sensorsToNotify;
+
         switch (response->base.disp_id) {
             case MI_DISP_PRIMARY:
+                sensorsToNotify = &mLightSensorsPrimary;
                 break;
+
             case MI_DISP_SECONDARY:
-                sensorsToNotify = mLightSensorsSecondary;
+                sensorsToNotify = &mLightSensorsSecondary;
                 break;
+
             default:
-                LOG(ERROR) << "got notified for unknown display: " << response->base.disp_id;
+                LOG(ERROR) << "got notified for unknown display: "
+                           << response->base.disp_id;
                 continue;
         }
 
@@ -115,28 +207,39 @@ void LightNotifier::notify() {
                 notifyType = POWER_STATE;
                 value = response->data[0];
                 break;
+
             case MI_DISP_EVENT_FPS:
                 notifyType = DISPLAY_FREQUENCY;
                 value = response->data[0];
                 break;
-            case MI_DISP_EVENT_51_BRIGHTNESS:
+
+            case MI_DISP_EVENT_51_BRIGHTNESS: {
+                uint16_t brightness;
+                memcpy(&brightness,
+                       response->data,
+                       sizeof(brightness));
                 notifyType = BRIGHTNESS;
-                value = *(uint16_t*)response->data;
+                value = brightness;
                 break;
+            }
+
             case MI_DISP_EVENT_HBM:
                 notifyType = BRIGHTNESS;
                 value = response->data[0] ? -1 : -2;
                 break;
+
             case MI_DISP_EVENT_DC:
                 notifyType = DC_STATE;
                 value = response->data[0];
                 break;
-            default:
-                LOG(ERROR) << "got unknown event: " << response->base.type;
-                continue;
-        };
 
-        for (const auto sensorId : sensorsToNotify) {
+            default:
+                LOG(ERROR) << "got unknown event: "
+                           << response->base.type;
+                continue;
+        }
+
+        for (const auto sensorId : *sensorsToNotify) {
             msg.sensorType = sensorId;
             msg.notifyType = notifyType;
             msg.notifyTypeFloat = notifyType;

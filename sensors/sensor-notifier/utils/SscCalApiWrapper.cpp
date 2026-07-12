@@ -9,28 +9,56 @@
 #include "SscCalApi.h"
 
 #include <android-base/logging.h>
+#include <android-base/properties.h>
 #include <dlfcn.h>
+
+namespace {
+
+constexpr const char* kDebugProperty =
+        "persist.vendor.debug.sensor_notifier";
+
+bool isDebugEnabled() {
+    return android::base::GetBoolProperty(kDebugProperty, false);
+}
+
+}  // namespace
 
 SscCalApiWrapper::SscCalApiWrapper() {
     mSscCalApiHandle = dlopen("libssccalapi@2.0.so", RTLD_NOW);
-    if (mSscCalApiHandle) {
-        init_current_sensors =
-                (init_current_sensors_t)dlsym(mSscCalApiHandle, "_Z20init_current_sensorsb");
-        if (init_current_sensors == NULL) {
-            LOG(ERROR) << "could not find init_current_sensors: " << dlerror();
-        }
+    if (mSscCalApiHandle == nullptr) {
+        LOG(ERROR) << "could not dlopen libssccalapi@2.0.so: " << dlerror();
+        return;
+    }
 
-        process_msg = (process_msg_t)dlsym(mSscCalApiHandle, "_Z11process_msgP8_oem_msg");
-        if (process_msg == NULL) {
-            LOG(ERROR) << "could not find process_msg: " << dlerror();
-        }
-    } else {
-        LOG(INFO) << "could not dlopen libssccalapi@2.0.so: " << dlerror();
+    dlerror();
+    init_current_sensors = reinterpret_cast<init_current_sensors_t>(
+            dlsym(mSscCalApiHandle, "_Z20init_current_sensorsb"));
+    const char* error = dlerror();
+    if (error != nullptr) {
+        init_current_sensors = nullptr;
+        LOG(ERROR) << "could not find init_current_sensors: " << error;
+    }
+
+    dlerror();
+    process_msg = reinterpret_cast<process_msg_t>(
+            dlsym(mSscCalApiHandle, "_Z11process_msgP8_oem_msg"));
+    error = dlerror();
+    if (error != nullptr) {
+        process_msg = nullptr;
+        LOG(ERROR) << "could not find process_msg: " << error;
     }
 }
 
 SscCalApiWrapper::~SscCalApiWrapper() {
-    dlclose(mSscCalApiHandle);
+    std::lock_guard<std::mutex> lock(mMutex);
+
+    process_msg = nullptr;
+    init_current_sensors = nullptr;
+
+    if (mSscCalApiHandle != nullptr) {
+        dlclose(mSscCalApiHandle);
+        mSscCalApiHandle = nullptr;
+    }
 }
 
 SscCalApiWrapper& SscCalApiWrapper::getInstance() {
@@ -39,15 +67,35 @@ SscCalApiWrapper& SscCalApiWrapper::getInstance() {
 }
 
 void SscCalApiWrapper::initCurrentSensors(bool debug) {
-    if (init_current_sensors != NULL) {
+    std::lock_guard<std::mutex> lock(mMutex);
+
+    if (init_current_sensors != nullptr) {
+        if (isDebugEnabled()) {
+            LOG(INFO) << "initializing current SSC sensors, debug=" << debug;
+        }
+
         init_current_sensors(debug);
     }
 }
 
 void SscCalApiWrapper::processMsg(_oem_msg* msg) {
-    if (process_msg != NULL) {
-        LOG(DEBUG) << "sending oem_msg for sensor " << msg->sensorType
-                   << " with type: " << msg->notifyType << " and value: " << msg->value;
+    if (msg == nullptr) {
+        return;
+    }
+
+    std::lock_guard<std::mutex> lock(mMutex);
+
+    if (process_msg != nullptr) {
+        /*
+         * Read the property dynamically. It can be enabled and disabled
+         * through adb without restarting sensor-notifier.
+         */
+        if (isDebugEnabled()) {
+            LOG(INFO) << "sending oem_msg for sensor " << msg->sensorType
+                      << " with type: " << msg->notifyType
+                      << " and value: " << msg->value;
+        }
+
         process_msg(msg);
     }
 }

@@ -10,6 +10,7 @@
 
 #include <android-base/logging.h>
 #include <android-base/unique_fd.h>
+#include <cerrno>
 #include <linux/xiaomi_touch.h>
 #include <poll.h>
 #include <sys/ioctl.h>
@@ -28,20 +29,27 @@ namespace {
 class NonUiSensorCallback : public IEventQueueCallback {
   public:
     NonUiSensorCallback() {
-        touch_fd_ = android::base::unique_fd(open(kTouchDevice.c_str(), O_RDWR));
+        touch_fd_ = android::base::unique_fd(
+                open(kTouchDevice.c_str(), O_RDWR));
         if (touch_fd_.get() == -1) {
-            LOG(ERROR) << "failed to open " << kTouchDevice;
+            PLOG(ERROR) << "failed to open " << kTouchDevice;
         }
     }
 
     Return<void> onEvent(const Event& e) {
-        if (touch_fd_.get() == -1) return Void();
+        if (touch_fd_.get() == -1) {
+            return Void();
+        }
 
         struct touch_mode_request request = {
                 .mode = TOUCH_MODE_NONUI_MODE,
                 .value = static_cast<int>(e.u.scalar),
         };
-        ioctl(touch_fd_.get(), TOUCH_IOC_SET_CUR_VALUE, &request);
+
+        if (ioctl(touch_fd_.get(),
+                  TOUCH_IOC_SET_CUR_VALUE, &request) < 0) {
+            PLOG(ERROR) << "failed to set NonUI touch mode";
+        }
 
         return Void();
     }
@@ -52,8 +60,12 @@ class NonUiSensorCallback : public IEventQueueCallback {
 
 }  // namespace
 
-NonUiNotifier::NonUiNotifier(sp<ISensorManager> manager) : SensorNotifier(manager) {
-    initializeSensorQueue("xiaomi.sensor.nonui", true, new NonUiSensorCallback());
+NonUiNotifier::NonUiNotifier(sp<ISensorManager> manager)
+    : SensorNotifier(manager) {
+    initializeSensorQueue(
+            "xiaomi.sensor.nonui",
+            true,
+            new NonUiSensorCallback());
 }
 
 NonUiNotifier::~NonUiNotifier() {
@@ -63,7 +75,6 @@ NonUiNotifier::~NonUiNotifier() {
 void NonUiNotifier::notify() {
     if (mQueue == nullptr) {
         LOG(ERROR) << "mQueue is null, cannot notify";
-        mActive = false;
         return;
     }
 
@@ -79,40 +90,158 @@ void NonUiNotifier::notify() {
     for (const char* path : paths) {
         int fd = open(path, O_RDONLY);
         if (fd < 0) {
-            // It's normal for side-fps devices like marble to miss FOD paths
-            LOG(INFO) << "Skipping missing path: " << path;
+            // Side-fps devices such as marble do not have every FOD node.
+            PLOG(INFO) << "Skipping missing path: " << path;
             continue;
         }
+
         fds.emplace_back(fd);
-        pollfds.push_back({fd, POLLPRI, 0});
+        pollfds.push_back({
+                .fd = fd,
+                .events = POLLPRI,
+                .revents = 0,
+        });
     }
 
     if (pollfds.empty()) {
         LOG(ERROR) << "No touch sensor paths found. Exiting notify.";
-        mActive = false;
         return;
     }
 
-    while (mActive) {
-        int rc = poll(pollfds.data(), pollfds.size(), 1000); // 1000ms timeout to prevent deadlocks
+    /*
+     * The last poll entry is eventfd from SensorNotifier. It allows
+     * poll() to sleep indefinitely and still exit immediately when
+     * deactivate() is called.
+     */
+    pollfds.push_back({
+            .fd = stopEventFd(),
+            .events = POLLIN,
+            .revents = 0,
+    });
+
+    bool sensorEnabled = false;
+    bool initialState = false;
+
+    /*
+     * Read every sysfs node. Do not use short-circuit logical OR,
+     * because all sysfs events must be consumed.
+     */
+    for (const auto& fd : fds) {
+        const bool value = readBool(fd.get());
+        initialState |= value;
+    }
+
+    if (initialState) {
+        auto result = mQueue->enableSensor(
+                mSensorHandle,
+                20000 /* sample period */,
+                0 /* latency */);
+        if (!result.isOk()) {
+            LOG(ERROR) << "enableSensor transaction failed: "
+                       << result.description();
+        } else if (result != Result::OK) {
+            LOG(ERROR) << "failed to enable NonUI sensor";
+        } else {
+            sensorEnabled = true;
+        }
+    }
+
+    while (isActive()) {
+        int rc = poll(pollfds.data(), pollfds.size(), -1);
         if (rc < 0) {
-            LOG(ERROR) << "failed to poll, err: " << rc;
+            if (errno == EINTR) {
+                continue;
+            }
+
+            PLOG(ERROR) << "failed to poll touch sensor nodes";
+            break;
+        }
+
+        pollfd& stopPollFd = pollfds.back();
+        if (stopPollFd.revents & POLLIN) {
+            consumeStopEvent();
+            break;
+        }
+
+        if (stopPollFd.revents & (POLLERR | POLLHUP | POLLNVAL)) {
+            LOG(ERROR) << "stop eventfd failed, revents="
+                       << stopPollFd.revents;
+            break;
+        }
+
+        bool hasFatalError = false;
+
+        for (size_t i = 0; i < fds.size(); i++) {
+            if (pollfds[i].revents &
+                    (POLLERR | POLLHUP | POLLNVAL)) {
+                LOG(ERROR) << "touch sysfs poll failed, fd="
+                           << pollfds[i].fd
+                           << ", revents=" << pollfds[i].revents;
+                hasFatalError = true;
+            }
+        }
+
+        if (hasFatalError) {
+            break;
+        }
+
+        /*
+         * Read all nodes unconditionally. The old expression:
+         *
+         *     enabled = enabled || readBool(...)
+         *
+         * stopped reading after the first true value and left later
+         * POLLPRI events pending, causing an immediate poll loop and
+         * repeated enableSensor() calls.
+         */
+        bool newState = false;
+
+        for (const auto& fd : fds) {
+            const bool value = readBool(fd.get());
+            newState |= value;
+        }
+
+        if (newState == sensorEnabled) {
             continue;
         }
-        if (rc == 0) continue; // Timeout, loop again to check mActive flag
 
-        bool enabled = false;
-        for (const auto& pfd : pollfds) {
-            enabled = enabled || readBool(pfd.fd);
-        }
-        if (enabled) {
-            if (!mQueue->enableSensor(mSensorHandle, 20000 /* sample period */, 0 /* latency */).isOk()) {
-                LOG(ERROR) << "failed to enable sensor";
+        if (newState) {
+            auto result = mQueue->enableSensor(
+                    mSensorHandle,
+                    20000 /* sample period */,
+                    0 /* latency */);
+            if (!result.isOk()) {
+                LOG(ERROR) << "enableSensor transaction failed: "
+                           << result.description();
+                continue;
+            }
+
+            if (result != Result::OK) {
+                LOG(ERROR) << "failed to enable NonUI sensor";
+                continue;
             }
         } else {
-            if (!mQueue->disableSensor(mSensorHandle).isOk()) {
-                LOG(DEBUG) << "failed to disable sensor";
+            auto result = mQueue->disableSensor(mSensorHandle);
+            if (!result.isOk()) {
+                LOG(ERROR) << "disableSensor transaction failed: "
+                           << result.description();
+                continue;
             }
+
+            if (result != Result::OK) {
+                LOG(VERBOSE) << "failed to disable NonUI sensor";
+                continue;
+            }
+        }
+
+        sensorEnabled = newState;
+    }
+
+    if (sensorEnabled) {
+        auto result = mQueue->disableSensor(mSensorHandle);
+        if (!result.isOk()) {
+            LOG(ERROR) << "disableSensor transaction failed during shutdown: "
+                       << result.description();
         }
     }
 }

@@ -15,4 +15,7 @@ class NonUiNotifier : public SensorNotifier {
 
   protected:
     void notify();
+
+  private:
+    bool mSensorEnabled = false;
 };

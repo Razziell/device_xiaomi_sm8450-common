@@ -7,6 +7,8 @@
 #pragma once
 
 #include <android/frameworks/sensorservice/1.0/ISensorManager.h>
+
+#include <atomic>
 #include <thread>
 
 using android::sp;
@@ -27,11 +29,16 @@ class SensorNotifier {
     Result initializeSensorQueue(std::string typeAsString, bool wakeup, sp<IEventQueueCallback>);
     virtual void notify() = 0;
 
+    bool isActive() const;
+    int stopEventFd() const;
+    void consumeStopEvent();
+
     sp<IEventQueue> mQueue;
     int32_t mSensorHandle = -1;
-    bool mActive = false;
 
   private:
     sp<ISensorManager> mManager;
     std::thread mThread;
+    std::atomic_bool mActive{false};
+    int mStopEventFd = -1;
 };
