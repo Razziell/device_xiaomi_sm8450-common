@@ -19,12 +19,10 @@ package org.lineageos.settings.speaker;
 import android.content.Context;
 import android.content.res.AssetFileDescriptor;
 import android.media.AudioManager;
-import android.media.AudioAttributes;
 import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.os.Message;
 import android.util.Log;
 
 import androidx.preference.Preference;
@@ -52,10 +50,16 @@ public class ClearSpeakerFragment extends PreferenceFragment implements
         addPreferencesFromResource(R.xml.clear_speaker_settings);
 
         mClearSpeakerPref = (SwitchPreferenceCompat) findPreference(PREF_CLEAR_SPEAKER);
-        mClearSpeakerPref.setOnPreferenceChangeListener(this);
+        if (mClearSpeakerPref != null) {
+            mClearSpeakerPref.setOnPreferenceChangeListener(this);
+        }
 
-        mHandler = new Handler();
-        mAudioManager = (AudioManager) getContext().getSystemService(Context.AUDIO_SERVICE);
+        mHandler = new Handler(Looper.getMainLooper());
+
+        Context context = getContext();
+        if (context != null) {
+            mAudioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+        }
     }
 
     @Override
@@ -77,16 +81,30 @@ public class ClearSpeakerFragment extends PreferenceFragment implements
 
     @Override
     public void onStop() {
-        super.onStop();
+        if (mHandler != null) {
+            mHandler.removeCallbacksAndMessages(null);
+        }
+
         stopPlaying();
+        super.onStop();
     }
 
     public boolean startPlaying() {
-        mAudioManager.setParameters("status_earpiece_clean=on");
+        stopPlaying();
+
+        if (mAudioManager != null) {
+            mAudioManager.setParameters("status_earpiece_clean=on");
+        }
+
         mMediaPlayer = new MediaPlayer();
-        getActivity().setVolumeControlStream(AudioManager.STREAM_MUSIC);
+
+        if (getActivity() != null) {
+            getActivity().setVolumeControlStream(AudioManager.STREAM_MUSIC);
+        }
+
         mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
         mMediaPlayer.setLooping(true);
+
         try {
             AssetFileDescriptor file = getResources().openRawResourceFd(R.raw.clear_speaker_sound);
             try {
@@ -94,28 +112,47 @@ public class ClearSpeakerFragment extends PreferenceFragment implements
             } finally {
                 file.close();
             }
-            mClearSpeakerPref.setEnabled(false);
+
+            if (mClearSpeakerPref != null) {
+                mClearSpeakerPref.setEnabled(false);
+            }
+
             mMediaPlayer.setVolume(1.0f, 1.0f);
             mMediaPlayer.prepare();
             mMediaPlayer.start();
-        } catch (IOException ioe) {
-            Log.e(TAG, "Failed to play speaker clean sound!", ioe);
+        } catch (IOException | IllegalStateException e) {
+            Log.e(TAG, "Failed to play speaker clean sound!", e);
+            stopPlaying();
             return false;
         }
+
         return true;
     }
 
     public void stopPlaying() {
         if (mMediaPlayer != null) {
-            if (mMediaPlayer.isPlaying()) {
-                mMediaPlayer.stop();
-                mMediaPlayer.reset();
-                mMediaPlayer.release();
-                mMediaPlayer=null;
+            try {
+                if (mMediaPlayer.isPlaying()) {
+                    mMediaPlayer.stop();
+                }
+            } catch (IllegalStateException ignored) {
             }
+
+            try {
+                mMediaPlayer.release();
+            } catch (Exception ignored) {
+            }
+
+            mMediaPlayer = null;
         }
-        mAudioManager.setParameters("status_earpiece_clean=off");
-        mClearSpeakerPref.setEnabled(true);
-        mClearSpeakerPref.setChecked(false);
+
+        if (mAudioManager != null) {
+            mAudioManager.setParameters("status_earpiece_clean=off");
+        }
+
+        if (mClearSpeakerPref != null) {
+            mClearSpeakerPref.setEnabled(true);
+            mClearSpeakerPref.setChecked(false);
+        }
     }
 }

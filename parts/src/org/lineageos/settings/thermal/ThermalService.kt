@@ -14,12 +14,16 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.IBinder
+import android.os.PowerManager
 import org.lineageos.settings.utils.Logging
 
 /** Service to monitor current top (foreground) app and set thermal profile accordingly. */
 class ThermalService : Service() {
 
     private lateinit var thermalUtils: ThermalUtils
+
+    private var taskListenerRegistered = false
+    private var receiverRegistered = false
 
     private var currentApp = ""
         set(value) {
@@ -40,10 +44,7 @@ class ThermalService : Service() {
     private val taskListener =
         object : TaskStackListener() {
             override fun onTaskStackChanged() {
-                runCatching {
-                    val focusedTask = ActivityTaskManager.getService().focusedRootTaskInfo
-                    focusedTask?.topActivity?.let { currentApp = it.packageName }
-                }
+                updateCurrentApp()
             }
         }
 
@@ -59,30 +60,77 @@ class ThermalService : Service() {
 
     override fun onCreate() {
         Logging.d(TAG, "Creating service")
-        thermalUtils = ThermalUtils.getInstance(this)
         super.onCreate()
+        thermalUtils = ThermalUtils.getInstance(this)
+        screenOn = getSystemService(PowerManager::class.java)?.isInteractive == true
     }
 
     override fun onDestroy() {
         Logging.d(TAG, "Destroying service")
-        unregisterReceiver(intentReceiver)
-        runCatching { ActivityTaskManager.getService().unregisterTaskStackListener(taskListener) }
+
+        if (receiverRegistered) {
+            runCatching {
+                unregisterReceiver(intentReceiver)
+            }.onFailure {
+                Logging.e(TAG, "Failed to unregister screen receiver", it)
+            }
+            receiverRegistered = false
+        }
+
+        if (taskListenerRegistered) {
+            runCatching {
+                ActivityTaskManager.getService().unregisterTaskStackListener(taskListener)
+            }.onFailure {
+                Logging.e(TAG, "Failed to unregister task stack listener", it)
+            }
+            taskListenerRegistered = false
+        }
+
+        super.onDestroy()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Logging.d(TAG, "Starting service")
-        runCatching { ActivityTaskManager.getService().registerTaskStackListener(taskListener) }
-        registerReceiver(
-            intentReceiver,
-            IntentFilter().apply {
-                addAction(Intent.ACTION_SCREEN_OFF)
-                addAction(Intent.ACTION_SCREEN_ON)
-            },
-        )
+
+        if (!taskListenerRegistered) {
+            runCatching {
+                ActivityTaskManager.getService().registerTaskStackListener(taskListener)
+                taskListenerRegistered = true
+            }.onFailure {
+                Logging.e(TAG, "Failed to register task stack listener", it)
+            }
+        }
+
+        if (!receiverRegistered) {
+            runCatching {
+                registerReceiver(
+                    intentReceiver,
+                    IntentFilter().apply {
+                        addAction(Intent.ACTION_SCREEN_OFF)
+                        addAction(Intent.ACTION_SCREEN_ON)
+                    },
+                )
+                receiverRegistered = true
+            }.onFailure {
+                Logging.e(TAG, "Failed to register screen receiver", it)
+            }
+        }
+
+        updateCurrentApp()
+
         return START_STICKY
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
+
+    private fun updateCurrentApp() {
+        runCatching {
+            val focusedTask = ActivityTaskManager.getService().focusedRootTaskInfo
+            focusedTask?.topActivity?.let { currentApp = it.packageName }
+        }.onFailure {
+            Logging.e(TAG, "Failed to update current app", it)
+        }
+    }
 
     private fun setThermalProfile() {
         if (screenOn) {

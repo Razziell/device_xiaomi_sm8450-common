@@ -22,6 +22,7 @@ import android.os.IBinder
 import android.os.Parcel
 import android.os.RemoteException
 import android.os.ServiceManager
+import android.util.Log
 import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
@@ -48,6 +49,13 @@ class SaturationFragment : SettingsBasePreferenceFragment(), Preference.OnPrefer
     private var mViewPagerImages: Array<View?>? = null
     private var mSaturationPreference: CustomSeekBarPreference? = null
     private var mSurfaceFlinger: IBinder? = null
+
+    companion object {
+        private const val TAG = "SaturationFragment"
+        private const val SURFACE_FLINGER_SERVICE = "SurfaceFlinger"
+        private const val SURFACE_COMPOSER_INTERFACE = "android.ui.ISurfaceComposer"
+        private const val SET_SATURATION_TRANSACTION = 1022
+    }
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.saturation, rootKey)
@@ -93,22 +101,34 @@ class SaturationFragment : SettingsBasePreferenceFragment(), Preference.OnPrefer
 
     private fun updateSaturation(seekBarValue: Int) {
         val saturation = if (seekBarValue == 100) 1.001f else seekBarValue / 100.0f
-        mSurfaceFlinger?.let {
-            try {
-                val data = Parcel.obtain()
-                data.writeInterfaceToken("android.ui.ISurfaceComposer")
-                data.writeFloat(saturation)
-                it.transact(1022, data, null, 0)
-                data.recycle()
-            } catch (e: RemoteException) {
-                e.printStackTrace()
+        val surfaceFlinger = mSurfaceFlinger ?: ServiceManager.getService(SURFACE_FLINGER_SERVICE)
+        if (surfaceFlinger == null) {
+            Log.e(TAG, "SurfaceFlinger service not found")
+            return
+        }
+
+        mSurfaceFlinger = surfaceFlinger
+
+        val data = Parcel.obtain()
+
+        try {
+            data.writeInterfaceToken(SURFACE_COMPOSER_INTERFACE)
+            data.writeFloat(saturation)
+
+            val result = surfaceFlinger.transact(SET_SATURATION_TRANSACTION, data, null, 0)
+            if (!result) {
+                Log.w(TAG, "SurfaceFlinger saturation transact failed")
             }
+        } catch (e: RemoteException) {
+            Log.e(TAG, "Failed to update saturation", e)
+        } finally {
+            data.recycle()
         }
     }
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
-        mSurfaceFlinger = ServiceManager.getService("SurfaceFlinger")
+        mSurfaceFlinger = ServiceManager.getService(SURFACE_FLINGER_SERVICE)
     }
 
     fun restoreSaturationSetting(context: Context) {

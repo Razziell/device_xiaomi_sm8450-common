@@ -28,20 +28,20 @@ import android.os.ServiceManager;
 import android.util.Log;
 import androidx.preference.PreferenceManager;
 
-import org.lineageos.settings.Constants;
-import org.lineageos.settings.utils.ComponentUtils;
-import org.lineageos.settings.utils.FileUtils;
-
 public class Startup extends BroadcastReceiver {
 
     private static final String TAG = "Startup";
+    private static final String SURFACE_FLINGER_SERVICE = "SurfaceFlinger";
+    private static final String SURFACE_COMPOSER_INTERFACE = "android.ui.ISurfaceComposer";
+    private static final int SET_SATURATION_TRANSACTION = 1022;
 
     @Override
     public void onReceive(Context context, Intent intent) {
         final String action = intent.getAction();
         Log.d(TAG, "onReceive called with action: " + action);
 
-        if (Intent.ACTION_BOOT_COMPLETED.equals(action) || 
+        if (Intent.ACTION_BOOT_COMPLETED.equals(action) ||
+            Intent.ACTION_LOCKED_BOOT_COMPLETED.equals(action) ||
             Intent.ACTION_REBOOT.equals(action)) {
 
             // Adding a delay before applying the saturation
@@ -71,20 +71,27 @@ public class Startup extends BroadcastReceiver {
             saturation = seekBarValue / 100.0f;
         }
 
-        IBinder surfaceFlinger = ServiceManager.getService("SurfaceFlinger");
-        if (surfaceFlinger != null) {
-            try {
-                Parcel data = Parcel.obtain();
-                data.writeInterfaceToken("android.ui.ISurfaceComposer");
-                data.writeFloat(saturation);
-                surfaceFlinger.transact(1022, data, null, 0);
-                data.recycle();
-                Log.d(TAG, "Saturation applied successfully");
-            } catch (RemoteException e) {
-                Log.e(TAG, "Failed to apply saturation", e);
-            }
-        } else {
+        IBinder surfaceFlinger = ServiceManager.getService(SURFACE_FLINGER_SERVICE);
+        if (surfaceFlinger == null) {
             Log.e(TAG, "SurfaceFlinger service not found");
+            return;
+        }
+
+        Parcel data = Parcel.obtain();
+        try {
+            data.writeInterfaceToken(SURFACE_COMPOSER_INTERFACE);
+            data.writeFloat(saturation);
+
+            boolean result = surfaceFlinger.transact(SET_SATURATION_TRANSACTION, data, null, 0);
+            if (result) {
+                Log.d(TAG, "Saturation applied successfully");
+            } else {
+                Log.w(TAG, "SurfaceFlinger saturation transact failed");
+            }
+        } catch (RemoteException e) {
+            Log.e(TAG, "Failed to apply saturation", e);
+        } finally {
+            data.recycle();
         }
     }
 }

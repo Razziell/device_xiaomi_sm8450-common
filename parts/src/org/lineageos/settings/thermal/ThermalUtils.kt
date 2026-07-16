@@ -28,6 +28,8 @@ private constructor(
     private val sharedPrefs = PreferenceManager.getDefaultSharedPreferences(context)
     private val serviceIntent = Intent(context, ThermalService::class.java)
 
+    private var lastAppliedConfig: String? = null
+
     var enabled: Boolean = sharedPrefs.getBoolean(THERMAL_ENABLED, false)
         set(value) {
             if (field == value) return
@@ -79,8 +81,8 @@ private constructor(
 
     fun getStateForPackage(packageName: String): ThermalState {
         val modes = value.split(":")
-        return ThermalState.values().find { state -> 
-            state.id < modes.size && modes[state.id].contains("$packageName,") 
+        return ThermalState.values().find { state ->
+            state.id < modes.size && modes[state.id].contains("$packageName,")
         } ?: getDefaultStateForPackage(packageName)
     }
 
@@ -91,7 +93,7 @@ private constructor(
 
     fun setDefaultThermalProfile() {
         Logging.d(TAG, "setDefaultThermalProfile")
-        FileUtils.writeLine(THERMAL_SCONFIG, THERMAL_STATE_DEFAULT)
+        writeThermalConfig(ThermalState.DEFAULT.config)
     }
 
     fun setThermalProfile(packageName: String) {
@@ -101,7 +103,20 @@ private constructor(
         }
         val state = getStateForPackage(packageName)
         Logging.d(TAG, "setThermalProfile: $packageName -> $state")
-        FileUtils.writeLine(THERMAL_SCONFIG, state.config)
+        writeThermalConfig(state.config)
+    }
+
+    private fun writeThermalConfig(config: String) {
+        if (lastAppliedConfig == config) {
+            Logging.d(TAG, "writeThermalConfig: already applied $config")
+            return
+        }
+
+        if (FileUtils.writeLine(THERMAL_SCONFIG, config)) {
+            lastAppliedConfig = config
+        } else {
+            Logging.w(TAG, "Failed to write thermal config: $config")
+        }
     }
 
     private fun getDefaultStateForPackage(packageName: String): ThermalState {
@@ -163,7 +178,6 @@ private constructor(
         private const val THERMAL_ENABLED = "thermal_enabled"
 
         private const val THERMAL_SCONFIG = "/sys/class/thermal/thermal_message/sconfig"
-        private const val THERMAL_STATE_DEFAULT = "20" // thermal-mgame.conf
 
         private val DEFAULT_VALUE = ThermalState.values().joinToString(":") { "${it.prefix}," }
 
