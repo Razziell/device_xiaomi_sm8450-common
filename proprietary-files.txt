@@ -435,48 +435,48 @@ vendor/lib64/libC2D2.so
 vendor/lib64/libc2d30_bltlib.so
 vendor/lib64/libgpudataproducer.so
 
-# Graphics (Adreno V837.0.7, Oculus Quest 3S 102.0.0.27.557, 2026-01-12 rev. 2)
+# Graphics (Adreno V837.0.9, Oculus Quest 3 207.0.0.93.1234, 2026-06-24 rev. 3)
 # Keep these blobs pinned: they are not extracted from the stock Xiaomi source above.
 vendor/lib/egl/eglSubDriverAndroid.so|9f73f847ff78b54deb2c73e6b6b65796b22b92d2
 vendor/lib/egl/libEGL_adreno.so;SYMLINK=vendor/lib/libEGL_adreno.so|e3aad28bcb936e71f9937e74aaddea0266b5a27a
 vendor/lib/egl/libGLESv1_CM_adreno.so|9b0968909034e32fee7a31549b3f759a09445376
-vendor/lib/egl/libGLESv2_adreno.so;SYMLINK=vendor/lib/libGLESv2_adreno.so|e119820b189a67b609310dc6aeee1b75dc6ea5f9
-vendor/lib/egl/libVkLayer_ADRENO_qprofiler.so|8efe7b76ad3a623d728d39a15dc26d1539869342
+vendor/lib/egl/libGLESv2_adreno.so;SYMLINK=vendor/lib/libGLESv2_adreno.so|534eab470e1fd32391091d39b8d2e55785ccf53b
+vendor/lib/egl/libVkLayer_ADRENO_qprofiler.so|3c12cec5dd061a2206c26e04d55fb062bc7f5467
 vendor/lib/egl/libq3dtools_adreno.so;SYMLINK=vendor/lib/libq3dtools_adreno.so|a8fd9462385c03f503ce658286138f98f0e30d2e
-vendor/lib/egl/libq3dtools_esx.so|c433556f582ead2cb7ffc0bca1b19fb1c33ebce2
-vendor/lib/libCB.so|1c6cecb09a830d5818ff63033c18f712fc6259ba
+vendor/lib/egl/libq3dtools_esx.so|55cea6322a3abf19f25ddd8b742f0e3794209a41
+vendor/lib/libCB.so|f6dcdfb2c6f072dff6c96fdaac7881a034036864
 vendor/lib/libOpenCL.so|381b16de15897990ca4f6a0edfe431d3419cd7eb
 vendor/lib/libOpenCL_adreno.so|7c967048955d7d0868f76029a5ba991deae01d37
-vendor/lib/libadreno_app_profiles.so|b6956744ea56c2d642c77ebaeb8f3f466d7dca84
+vendor/lib/libadreno_app_profiles.so|4a7e6cc61f220c384a354b55a9ec22eaa14f33d7
 vendor/lib/libadreno_compiler_cl.so|5cab58737c3d6406222891733d52231f1903190c
-vendor/lib/libadreno_utils.so|423cfa9b036b34454a3d81a497be749ccf058bce
-vendor/lib/libgsl.so|1411348dbaa4af746f85092647ecf48a279ed449
-vendor/lib/libkcl.so|60a560747a074a3cb314919d1c0f95ea9ddcf9fb
-vendor/lib/libkernelmanager.so|e4622e98e748733d35359650fb1f343078988d77
-vendor/lib/libllvm-glnext.so|64663b3a913a3c342dbd2c136d0d0a6db5dbe737
+vendor/lib/libadreno_utils.so|11f251fe3135835ace5ef9e58e94ab243e08e9ce
+vendor/lib/libgsl.so|4d16e5c8508fac30670917615e2b210f30677527
+vendor/lib/libkcl.so|ea7f01507bcb606ca58c690466aea0cd2489454f
+vendor/lib/libkernelmanager.so|1cc4725fa4ec65cbe33450cf0b1d1e949637ce70
+vendor/lib/libllvm-glnext.so|c79758694d09d96ae63f6099a181403a219a4f9c
 vendor/lib/libllvm-qcom.so|7fcfc436335cdbd007a75a858e93039aa88903d2
-vendor/lib/libllvm-qgl.so|7bb68a2b59b9514457c1b44ffbe36dfb69f3db28
+vendor/lib/libllvm-qgl.so|4d74bc927eee4e8576cd837a7b9dca7b090b61d6
 vendor/lib/vendor.qti.qspmhal@1.0.so|eb56a309f48ca73543a9d9bfdfec3d1f93dae407
 vendor/lib64/egl/eglSubDriverAndroid.so|aca34a99e51120c7b7511bc5e0cafd573242216a
 vendor/lib64/egl/libEGL_adreno.so;SYMLINK=vendor/lib64/libEGL_adreno.so|e49f8a0d8bd2f4eb3644669c2dc68f0aa2f73041
 vendor/lib64/egl/libGLESv1_CM_adreno.so|951d48a6e468d3f8fb2b3a5c7a0231e1ce6d3710
-vendor/lib64/egl/libGLESv2_adreno.so;SYMLINK=vendor/lib64/libGLESv2_adreno.so|e2fbc34830d8c5443fe38e8a6d27074c9ff11700
-vendor/lib64/egl/libVkLayer_ADRENO_qprofiler.so|d0587fe2c57a291bf5f26528ea92beb0dc499234
+vendor/lib64/egl/libGLESv2_adreno.so;SYMLINK=vendor/lib64/libGLESv2_adreno.so|d20f74dc7db31161c46538db3a682995e826d803
+vendor/lib64/egl/libVkLayer_ADRENO_qprofiler.so|3fdcc1e0c2b5fdc0ad3ce177943973c02fc0a25c
 vendor/lib64/egl/libq3dtools_adreno.so;SYMLINK=vendor/lib64/libq3dtools_adreno.so|4d65983b09c1baa1f05e0d8cfc4c85203048c13a
-vendor/lib64/egl/libq3dtools_esx.so|aba72abbd0ea1e746d423b61f9a447142f3db069
-vendor/lib64/libCB.so|d431edee0cfadbffbfe3758ee759ff3309e2045d
+vendor/lib64/egl/libq3dtools_esx.so|ebed4a5e1f662c7e5ca0b8a0be02bba931748f51
+vendor/lib64/libCB.so|4babf71047537085126e7983fa8bcac2c25ebd01
 vendor/lib64/libOpenCL.so|80d889f4c832f3a32f56c36776293f679f37341b
 vendor/lib64/libOpenCL_adreno.so|797b9d8dbc02daaa6cbe48a66cf3ba716c86f811
-vendor/lib64/libadreno_app_profiles.so|518023f2463f38dba8e36093a1a6cc3a51ec8925
+vendor/lib64/libadreno_app_profiles.so|20cf6fc630f78b9d3b7a3b5d99c16c668b4f1ad6
 vendor/lib64/libadreno_compiler_cl.so|c53a93ee6c9c4be3412b8a0141587e799f186cf3
-vendor/lib64/libadreno_utils.so|a557f1a83381bd5c496c28e4588cfa6b264198ab
-vendor/lib64/libgsl.so|9d2ff3bd1788ef444ae33da3f14b4984cf1425af
-vendor/lib64/libkcl.so|3bd8fbb262707b9c251c641025f877321bb87080
-vendor/lib64/libkernelmanager.so|3818a906a9bc9f9cade87f75f0e604525ebea6b8
-vendor/lib64/libllvm-glnext.so|ea489b3f20eae733a2d99b6d70d2e1ef89b85337
+vendor/lib64/libadreno_utils.so|08a584a26c4cb01718c482510a1afd7672875654
+vendor/lib64/libgsl.so|c15dfc9b1b2588dd027c38997a9a9431cfb66dbf
+vendor/lib64/libkcl.so|fd5042a7a7f564abdd1aa65c0b2d2c80f18a524f
+vendor/lib64/libkernelmanager.so|cf80c9164df723923ecff21ff3e065e9a5ce0462
+vendor/lib64/libllvm-glnext.so|152a9f66ee3f5716379172759971ddf3b3c08e11
 vendor/lib64/libllvm-qcom.so|edb0508636372ca244a552f354e056c69445ee4a
-vendor/lib64/libllvm-qgl.so|9d461a8b45079dd5b845c9d6dc2353726a6e43cc
-vendor/lib64/vendor.qti.qspmhal@1.0.so|72a2e587225c2f65bb25d10249cb6666c30d0caa
+vendor/lib64/libllvm-qgl.so|0f74cd68de9d472f04c447a71058ede06c35a41b
+vendor/lib64/vendor.qti.qspmhal@1.0.so|9a084a8b43ec3cfac307d67faf3e1de7ed6e58d7
 
 # Graphics (Adreno firmware)
 vendor/firmware/a660_sqe.fw
@@ -484,9 +484,9 @@ vendor/firmware/a662_gmu.bin
 vendor/firmware/a730_sqe.fw
 vendor/firmware/gmu_gen70000.bin
 
-# Graphics (Vulkan 512.837.7, Oculus Quest 3S 102.0.0.27.557, 2026-01-12 rev. 2)
-vendor/lib/hw/vulkan.adreno.so|099ca6ba792b1b8e808be2d0837838506e66d7d0
-vendor/lib64/hw/vulkan.adreno.so|ae02fcc8bf56bcbd5898dc7a253f4794779fcb41
+# Graphics (Vulkan 512.837.9, Oculus Quest 3 207.0.0.93.1234, 2026-06-24 rev. 3)
+vendor/lib/hw/vulkan.adreno.so|29327176c494c494e0dfebb6d0355daf320f99b1
+vendor/lib64/hw/vulkan.adreno.so|f024c263ada569aaf72f3bc603193c81ecfbbcc0
 
 # Hotword Enrollment
 product/priv-app/HotwordEnrollmentXGoogleHEXAGON_WIDEBAND/HotwordEnrollmentXGoogleHEXAGON_WIDEBAND.apk
