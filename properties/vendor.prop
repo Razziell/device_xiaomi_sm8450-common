@@ -124,26 +124,61 @@ vendor.gatekeeper.disable_spu=true
 debug.sf.auto_latch_unsignaled=0
 debug.sf.disable_client_composition_cache=1
 debug.sf.enable_transaction_tracing=false
-debug.sf.early.app.duration=13666666
-debug.sf.early.sf.duration=15666666
-debug.sf.earlyGl.app.duration=13666666
-debug.sf.earlyGl.sf.duration=15666666
 debug.sf.enable_gl_backpressure=1
 debug.sf.frame_rate_multiple_threshold=120
-debug.sf.late.app.duration=13666666
-debug.sf.late.sf.duration=15666666
 debug.sf.predict_hwc_composition_strategy=0
 debug.sf.set_idle_timer_ms=1000
 debug.sf.treat_170m_as_sRGB=1
 debug.sf.use_phase_offsets_as_durations=1
 debug.sf.enable_egl_image_tracker=0
+
+# SurfaceFlinger work durations
+# Global fallback / 60 Hz profile
+debug.sf.late.app.duration=13666666
+debug.sf.late.sf.duration=15666666
+debug.sf.early.app.duration=13666666
+debug.sf.early.sf.duration=15666666
+debug.sf.earlyGl.app.duration=13666666
+debug.sf.earlyGl.sf.duration=15666666
+
+# Explicit 60 Hz profile
+debug.sf.late.app.duration.60=13666666
+debug.sf.late.sf.duration.60=15666666
+debug.sf.early.app.duration.60=13666666
+debug.sf.early.sf.duration.60=15666666
+debug.sf.earlyGl.app.duration.60=13666666
+debug.sf.earlyGl.sf.duration.60=15666666
+
+# Conservative 90 Hz profile
+# Frame period: 11111111 ns
+debug.sf.late.app.duration.90=10000000
+debug.sf.late.sf.duration.90=11000000
+debug.sf.early.app.duration.90=10000000
+debug.sf.early.sf.duration.90=11000000
+debug.sf.earlyGl.app.duration.90=10000000
+debug.sf.earlyGl.sf.duration.90=11000000
+
+# Conservative 120 Hz profile
+# Frame period: 8333333 ns
+debug.sf.late.app.duration.120=7500000
+debug.sf.late.sf.duration.120=8250000
+debug.sf.early.app.duration.120=7500000
+debug.sf.early.sf.duration.120=8250000
+debug.sf.earlyGl.app.duration.120=7500000
+debug.sf.earlyGl.sf.duration.120=8250000
+
+# SurfaceFlinger color configuration
 persist.sys.sf.color_mode=0
 persist.sys.sf.color_saturation=1.0
 persist.sys.sf.native_mode=258
+
+# Qualcomm graphics
 ro.gfx.driver.1=com.qualcomm.qti.gpudrivers.taro.api31
 ro.hardware.egl=adreno
 ro.hardware.vulkan=adreno
 ro.opengles.version=196610
+
+# SurfaceFlinger capabilities
 ro.surface_flinger.enable_frame_rate_override=false
 ro.surface_flinger.force_hwc_copy_for_virtual_displays=true
 ro.surface_flinger.game_default_frame_rate_override=120
@@ -158,6 +193,8 @@ ro.surface_flinger.uclamp.min=125
 ro.surface_flinger.use_color_management=true
 ro.surface_flinger.use_content_detection_for_refresh_rate=true
 ro.surface_flinger.wcg_composition_dataspace=143261696
+
+# Gralloc
 vendor.gralloc.disable_ubwc=0
 
 # Incremental
