@@ -2,7 +2,7 @@
 <!--
      Copyright (C) 2020 The LineageOS Project
 -->
-<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+<resources>
 
     <!-- Xiaomi Settings -->
     <string name="app_title">Настройки Xiaomi</string>
@@ -10,12 +10,16 @@
     <string name="tile_added">Плитка добавлена</string>
     <string name="tile_not_added">Не удалось добавить плитку</string>
     <string name="tile_already_added">Плитка уже добавлена</string>
-    <string name="tile_on">Вкл.</string>
-    <string name="tile_off">Выкл.</string>
+    <string name="navigate_back">Назад</string>
+    <string name="action_yes">Да</string>
+    <string name="action_no">Нет</string>
 
     <!-- Thermal profiles -->
     <string name="thermal_title">Тепловые профили</string>
-    <string name="thermal_summary">Настройка Термопрофилей</string>
+    <string name="thermal_enable">Использовать тепловые профили</string>
+    <string name="thermal_summary">Настройка тепловых профилей для приложений</string>
+    <string name="thermal_apps_title">Приложения</string>
+    <string name="thermal_loading">Загрузка…</string>
     <string name="thermal_default">Без оптимизации</string>
     <string name="thermal_benchmark">Производительность</string>
     <string name="thermal_browser">Браузер</string>
@@ -25,28 +29,12 @@
     <string name="thermal_navigation">Навигация</string>
     <string name="thermal_streaming">Стриминг</string>
     <string name="thermal_video">Видео</string>
-
-    <!-- Thermal Tile Strings -->
-    <string name="thermal_tile_label">Тепловой режим</string>
-    <string name="thermal_mode_default">Стандартный режим</string>
-    <string name="thermal_mode_performance">Режим производительности</string>
-    <string name="thermal_mode_battery_saver">Режим энергосбережения</string>
-    <string name="thermal_mode_gaming">Игровой режим</string>
-
-    <!-- Always-On Display (AOD) -->
-    <string name="ambient_display_title">Always-On Display</string>
-    <string name="ambient_display_enable_title">Включить AOD</string>
-    <string name="ambient_display_always_on_title">Всегда включён</string>
-    <string name="ambient_display_always_on_summary">
-        Постоянно отображать время и значки уведомлений
-    </string>
-
-    <!-- Doze Strings -->
-    <string name="doze_brightness_low">Низкая яркость</string>
-    <string name="doze_brightness_high">Высокая яркость</string>
-    <string name="doze_brightness_adaptive">Адаптивная яркость</string>
-    <string name="doze_brightness_title">Яркость экрана в режиме Doze</string>
-    <string name="doze_brightness_summary">Уровень яркости экрана при импульсе Doze (% от максимально допустимой)</string>
+    <string name="thermal_reset">Сбросить настройки</string>
+    <string name="thermal_reset_message">Сбросить тепловые профили для всех приложений?</string>
+    <string name="thermal_error">Ошибка: %1$s</string>
+    <string name="thermal_no_apps">Приложения не найдены</string>
+    <string name="thermal_no_apps_summary">Установите приложения, чтобы настроить их тепловые профили</string>
+    <string name="thermal_select_profile">Выбрать тепловой профиль</string>
 
     <!-- Clear Speaker -->
     <string name="clear_speaker_title">Очистка динамика</string>
@@ -55,6 +43,11 @@
         Запустите эту функцию 1–2 раза, если динамик слегка забит пылью. Установите громкость мультимедиа на максимум.\n\n
         Если динамик сильно загрязнён, запустите функцию 2–5 раз, слегка встряхивая устройство, держа динамик направленным вниз.
     </string>
+    <string name="clear_speaker_start">Начать очистку</string>
+    <string name="clear_speaker_starting">Запуск…</string>
+    <string name="clear_speaker_stop">Остановить очистку</string>
+    <string name="clear_speaker_seconds_remaining">Осталось секунд: %1$d</string>
+    <string name="clear_speaker_error">Не удалось запустить очистку динамика: %1$s</string>
 
     <!-- Saturation -->
     <string name="saturation_title">Насыщенность дисплея</string>
@@ -62,17 +55,14 @@
     <string name="saturation_footer_summary">
         Изменение цветового режима в настройках дисплея сбрасывает уровень насыщенности, после чего его нужно задать заново.
     </string>
+    <string name="saturation_level">Уровень насыщенности</string>
+    <string name="saturation_value">%1$d%%</string>
+    <string name="saturation_default">По умолчанию</string>
+    <string name="saturation_reset">Сбросить насыщенность</string>
+    <string name="saturation_error">Не удалось применить насыщенность: %1$s</string>
 
     <!-- Image preview -->
-    <string name="image_preview_content_description">Предпросмотр</string>
+    <string name="image_preview_page_content_description">Предпросмотр %1$d из %2$d</string>
     <string name="image_preview_next_page_content_description">Следующее</string>
     <string name="image_preview_previous_page_content_description">Предыдущее</string>
-
-    <!-- Custom seekbar -->
-    <string name="custom_seekbar_value">Значение: <xliff:g id="v">%s</xliff:g></string>
-    <string name="custom_seekbar_default_value">по умолчанию</string>
-    <string name="custom_seekbar_default_value_to_set">
-        Значение по умолчанию: <xliff:g id="v">%s</xliff:g>\nДолгое нажатие — установить
-    </string>
-    <string name="custom_seekbar_default_value_is_set">Значение по умолчанию установлено</string>
 </resources>

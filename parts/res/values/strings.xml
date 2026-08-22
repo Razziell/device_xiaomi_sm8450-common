@@ -14,7 +14,7 @@
      See the License for the specific language governing permissions and
      limitations under the License.
 -->
-<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+<resources>
 
     <!-- Xiaomi Settings -->
     <string name="app_title">Xiaomi Settings</string>
@@ -22,8 +22,9 @@
     <string name="tile_added">Tile added</string>
     <string name="tile_not_added">Tile not added</string>
     <string name="tile_already_added">Tile already added</string>
-    <string name="tile_on">On</string>
-    <string name="tile_off">Off</string>
+    <string name="navigate_back">Navigate back</string>
+    <string name="action_yes">Yes</string>
+    <string name="action_no">No</string>
 
     <!-- Thermal Profiles -->
     <string name="thermal_title">Thermal profiles</string>
@@ -42,6 +43,10 @@
     <string name="thermal_video">Video</string>
     <string name="thermal_reset">Reset to defaults</string>
     <string name="thermal_reset_message">Are you sure you want to reset thermal profile for all apps?</string>
+    <string name="thermal_error">Error: %1$s</string>
+    <string name="thermal_no_apps">No apps found</string>
+    <string name="thermal_no_apps_summary">Install some apps to manage thermal profiles</string>
+    <string name="thermal_select_profile">Select thermal profile</string>
 
     <!-- Clear Speaker -->
     <string name="clear_speaker_title">Clear speaker</string>
@@ -50,22 +55,25 @@
           speaker is lightly blocked by dust. Set media volume to maximum.\n\nIf the speaker is
           blocked heavily, run this feature 2-5 times while shaking your device with the speaker
           facing downwards.</string>
+    <string name="clear_speaker_start">Start cleaning</string>
+    <string name="clear_speaker_starting">Starting…</string>
+    <string name="clear_speaker_stop">Stop cleaning</string>
+    <string name="clear_speaker_seconds_remaining">%1$d seconds remaining</string>
+    <string name="clear_speaker_error">Unable to start speaker cleaning: %1$s</string>
 
     <!-- Saturation -->
     <string name="saturation_title">Display Saturation</string>
     <string name="saturation_summary">Control the saturation level of the display</string>
     <string name="saturation_footer_summary">Changing the color mode in display settings will
           override the saturation level, requiring it to be reapplied.</string>
+    <string name="saturation_level">Saturation level</string>
+    <string name="saturation_value">%1$d%%</string>
+    <string name="saturation_default">Default</string>
+    <string name="saturation_reset">Reset saturation</string>
+    <string name="saturation_error">Unable to apply saturation: %1$s</string>
 
     <!-- Image preview -->
-    <string name="image_preview_content_description">Preview</string>
+    <string name="image_preview_page_content_description">Preview %1$d of %2$d</string>
     <string name="image_preview_next_page_content_description">Next</string>
     <string name="image_preview_previous_page_content_description">Previous</string>
-
-    <!-- Custom seekbar -->
-    <string name="custom_seekbar_value">Value: <xliff:g id="v">%s</xliff:g></string>
-    <string name="custom_seekbar_default_value">by default</string>
-    <string name="custom_seekbar_default_value_to_set">Default value: <xliff:g id="v">%s</xliff:g>\nLong
-          tap to set</string>
-    <string name="custom_seekbar_default_value_is_set">Default value is set</string>
 </resources>

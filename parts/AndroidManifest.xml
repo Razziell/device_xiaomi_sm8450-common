@@ -23,19 +23,7 @@
     android:sharedUserId="android.uid.system">
 
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
-    <uses-permission android:name="android.permission.GET_TASKS" />
     <uses-permission android:name="android.permission.ACCESS_SURFACE_FLINGER" />
-    <uses-permission android:name="android.permission.INTERACT_ACROSS_USERS_FULL" />
-    <uses-permission android:name="android.permission.WRITE_SETTINGS" />
-
-    <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS" />
-
-    <protected-broadcast android:name="com.android.systemui.doze.pulse" />
-
-    <uses-sdk
-        android:minSdkVersion="24"
-        android:targetSdkVersion="30" />
 
     <application
         android:label="@string/app_title"
@@ -44,9 +32,8 @@
         android:theme="@style/Theme.SubSettingsBase.Expressive">
 
         <receiver
-            android:name=".BootCompletedReceiver"
-            android:exported="true"
-            android:permission="android.permission.RECEIVE_BOOT_COMPLETED">
+            android:name=".boot.BootCompletedReceiver"
+            android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
@@ -59,24 +46,15 @@
             android:authorities="${applicationId}.androidx-startup"
             tools:replace="android:authorities" />
 
-        <receiver
-            android:name=".Startup"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
-                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
-            </intent-filter>
-        </receiver>
-
         <!-- Thermal Settings -->
         <activity
             android:name=".thermal.ThermalComposeActivity"
             android:label="@string/thermal_title"
             android:icon="@drawable/ic_thermal_settings"
-            android:theme="@android:style/Theme.DeviceDefault.NoActionBar"
             android:exported="true">
             <intent-filter>
                 <action android:name="com.android.settings.action.IA_SETTINGS" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
             <meta-data
                 android:name="com.android.settings.category"
@@ -87,18 +65,26 @@
             <meta-data
                 android:name="com.android.settings.icon"
                 android:resource="@drawable/ic_thermal_settings" />
+            <meta-data
+                android:name="com.android.settings.icon_tintable"
+                android:value="true" />
+            <meta-data
+                android:name="com.android.settings.profile"
+                android:value="primary_profile_only" />
         </activity>
 
         <service
             android:name=".thermal.ThermalService"
-            android:permission="ThermalService" />
+            android:exported="false" />
 
         <!-- Clear Speaker -->
         <activity
-            android:name=".speaker.ClearSpeakerActivity"
-            android:label="@string/clear_speaker_title">
+            android:name=".speaker.ClearSpeakerComposeActivity"
+            android:label="@string/clear_speaker_title"
+            android:exported="true">
             <intent-filter>
                 <action android:name="com.android.settings.action.IA_SETTINGS" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
             <meta-data
                 android:name="com.android.settings.category"
@@ -106,6 +92,9 @@
             <meta-data
                 android:name="com.android.settings.summary"
                 android:resource="@string/clear_speaker_summary" />
+            <meta-data
+                android:name="com.android.settings.profile"
+                android:value="primary_profile_only" />
         </activity>
 
         <!-- Display Saturation activity -->
@@ -115,6 +104,7 @@
             android:exported="true">
             <intent-filter>
                 <action android:name="com.android.settings.action.IA_SETTINGS" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
             <meta-data
                 android:name="com.android.settings.category"
@@ -122,6 +112,12 @@
             <meta-data
                 android:name="com.android.settings.summary"
                 android:resource="@string/saturation_summary" />
+            <meta-data
+                android:name="com.android.settings.group_key"
+                android:value="category_key_color" />
+            <meta-data
+                android:name="com.android.settings.profile"
+                android:value="primary_profile_only" />
         </activity>
 
         <!-- Display Saturation tile service -->

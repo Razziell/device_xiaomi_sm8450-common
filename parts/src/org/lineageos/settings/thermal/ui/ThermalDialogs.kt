@@ -29,12 +29,12 @@ fun ResetConfirmationDialog(
         },
         confirmButton = {
             TextButton(onClick = onConfirm) {
-                Text(text = stringResource(android.R.string.yes))
+                Text(text = stringResource(R.string.action_yes))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(text = stringResource(android.R.string.no))
+                Text(text = stringResource(R.string.action_no))
             }
         }
     )

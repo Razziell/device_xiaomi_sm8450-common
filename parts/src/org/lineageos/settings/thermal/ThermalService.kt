@@ -13,47 +13,54 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.os.Handler
+import android.os.HandlerThread
 import android.os.IBinder
 import android.os.PowerManager
 import org.lineageos.settings.utils.Logging
 
-/** Service to monitor current top (foreground) app and set thermal profile accordingly. */
+/**
+ * Service to monitor the current top (foreground) app and set the thermal
+ * profile accordingly.
+ *
+ * All profile evaluation is serialized on a dedicated background thread:
+ * task-stack callbacks arrive on binder threads and screen broadcasts on the
+ * main thread, so the work is posted to [handler] to avoid races and to keep
+ * PackageManager/sysfs work off the main thread.
+ */
 class ThermalService : Service() {
 
     private lateinit var thermalUtils: ThermalUtils
+    private lateinit var handlerThread: HandlerThread
+    private lateinit var handler: Handler
 
     private var taskListenerRegistered = false
     private var receiverRegistered = false
 
+    // Accessed only on the handler thread.
     private var currentApp = ""
-        set(value) {
-            if (field == value) return
-            field = value
-            Logging.d(TAG, "Top app changed: $value")
-            setThermalProfile()
-        }
-
     private var screenOn = true
-        set(value) {
-            if (field == value) return
-            field = value
-            Logging.d(TAG, "Screen state changed: $value")
-            setThermalProfile()
-        }
 
     private val taskListener =
         object : TaskStackListener() {
             override fun onTaskStackChanged() {
-                updateCurrentApp()
+                // Called on a binder thread; serialize onto the handler thread.
+                handler.post { updateCurrentApp(forceApply = false) }
             }
         }
 
     private val intentReceiver =
         object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
+                // Delivered on the handler thread via the registerReceiver scheduler.
                 when (intent.action) {
-                    Intent.ACTION_SCREEN_OFF -> screenOn = false
-                    Intent.ACTION_SCREEN_ON -> screenOn = true
+                    Intent.ACTION_SCREEN_OFF -> setScreenOn(false)
+                    Intent.ACTION_SCREEN_ON -> {
+                        // The vendor thermal daemon may rewrite sconfig while the
+                        // screen is off; force the next apply to hit sysfs.
+                        thermalUtils.invalidateAppliedConfig()
+                        setScreenOn(true)
+                    }
                 }
             }
         }
@@ -62,7 +69,11 @@ class ThermalService : Service() {
         Logging.d(TAG, "Creating service")
         super.onCreate()
         thermalUtils = ThermalUtils.getInstance(this)
-        screenOn = getSystemService(PowerManager::class.java)?.isInteractive == true
+        handlerThread = HandlerThread(TAG).also { it.start() }
+        handler = Handler(handlerThread.looper)
+
+        val interactive = getSystemService(PowerManager::class.java)?.isInteractive == true
+        handler.post { screenOn = interactive }
     }
 
     override fun onDestroy() {
@@ -86,11 +97,18 @@ class ThermalService : Service() {
             taskListenerRegistered = false
         }
 
+        handlerThread.quitSafely()
         super.onDestroy()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Logging.d(TAG, "Starting service")
+
+        if (!thermalUtils.enabled) {
+            Logging.d(TAG, "Thermal profiles are disabled; stopping service")
+            stopSelf(startId)
+            return START_NOT_STICKY
+        }
 
         if (!taskListenerRegistered) {
             runCatching {
@@ -109,6 +127,9 @@ class ThermalService : Service() {
                         addAction(Intent.ACTION_SCREEN_OFF)
                         addAction(Intent.ACTION_SCREEN_ON)
                     },
+                    /* broadcastPermission = */ null,
+                    /* scheduler = */ handler,
+                    Context.RECEIVER_NOT_EXPORTED,
                 )
                 receiverRegistered = true
             }.onFailure {
@@ -116,17 +137,34 @@ class ThermalService : Service() {
             }
         }
 
-        updateCurrentApp()
+        handler.post {
+            thermalUtils.invalidateAppliedConfig()
+            updateCurrentApp(forceApply = true)
+        }
 
         return START_STICKY
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    private fun updateCurrentApp() {
+    private fun setScreenOn(value: Boolean) {
+        if (screenOn == value) return
+        screenOn = value
+        Logging.d(TAG, "Screen state changed: $value")
+        setThermalProfile()
+    }
+
+    private fun updateCurrentApp(forceApply: Boolean) {
         runCatching {
             val focusedTask = ActivityTaskManager.getService().focusedRootTaskInfo
-            focusedTask?.topActivity?.let { currentApp = it.packageName }
+            val packageName = focusedTask?.topActivity?.packageName.orEmpty()
+            if (currentApp == packageName) {
+                if (forceApply) setThermalProfile()
+            } else {
+                currentApp = packageName
+                Logging.d(TAG, "Top app changed: $packageName")
+                setThermalProfile()
+            }
         }.onFailure {
             Logging.e(TAG, "Failed to update current app", it)
         }

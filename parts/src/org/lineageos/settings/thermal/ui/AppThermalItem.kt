@@ -5,7 +5,7 @@
 
 package org.lineageos.settings.thermal.ui
 
-import android.graphics.drawable.Drawable
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -21,10 +21,9 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
-import android.widget.ImageView
-import androidx.compose.ui.graphics.toArgb
+import org.lineageos.settings.R
 import org.lineageos.settings.thermal.ThermalUtils.ThermalState
 import org.lineageos.settings.thermal.model.AppThermalState
 
@@ -48,7 +47,7 @@ fun AppThermalItem(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
                     expanded = true
                 }
                 .padding(16.dp),
@@ -61,7 +60,7 @@ fun AppThermalItem(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 AppIcon(
-                    drawable = app.icon,
+                    icon = app.icon,
                     contentDescription = app.label,
                     modifier = Modifier.size(40.dp)
                 )
@@ -81,7 +80,7 @@ fun AppThermalItem(
                         .clip(RoundedCornerShape(8.dp)) // Makes it rounded
                         .background(MaterialTheme.colorScheme.secondaryContainer) // Sets the background color with better contrast
                         .clickable {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
                             expanded = true
                         }
                         .padding(horizontal = 12.dp, vertical = 8.dp), // Padding around the content
@@ -96,7 +95,7 @@ fun AppThermalItem(
                     )
                     Icon(
                         imageVector = Icons.Default.ArrowDropDown,
-                        contentDescription = "Select thermal profile",
+                        contentDescription = stringResource(R.string.thermal_select_profile),
                         modifier = Modifier.size(20.dp),
                         tint = MaterialTheme.colorScheme.onSecondaryContainer
                     )
@@ -119,18 +118,13 @@ fun AppThermalItem(
 
 @Composable
 fun AppIcon(
-    drawable: Drawable,
+    icon: ImageBitmap,
     contentDescription: String?,
     modifier: Modifier = Modifier
 ) {
-    AndroidView(
-        factory = { context ->
-            ImageView(context).apply {
-                scaleType = ImageView.ScaleType.FIT_CENTER
-                setImageDrawable(drawable)
-                this.contentDescription = contentDescription
-            }
-        },
+    Image(
+        bitmap = icon,
+        contentDescription = contentDescription,
         modifier = modifier
     )
 }

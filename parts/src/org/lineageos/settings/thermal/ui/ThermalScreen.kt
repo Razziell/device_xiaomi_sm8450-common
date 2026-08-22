@@ -26,6 +26,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.lineageos.settings.R
 import org.lineageos.settings.thermal.ThermalViewModel
 
@@ -38,7 +39,7 @@ fun ThermalScreen(
     viewModel: ThermalViewModel,
     onBackPressed: () -> Unit
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showResetDialog by remember { mutableStateOf(false) }
     
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
@@ -52,7 +53,7 @@ fun ThermalScreen(
                     IconButton(onClick = onBackPressed) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Navigate back"
+                            contentDescription = stringResource(R.string.navigate_back)
                         )
                     }
                 },
@@ -203,7 +204,7 @@ private fun ErrorState(error: String) {
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = "Error: $error",
+            text = stringResource(R.string.thermal_error, error),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.error,
             textAlign = TextAlign.Center,
@@ -223,14 +224,14 @@ private fun EmptyState() {
             modifier = Modifier.padding(32.dp)
         ) {
             Text(
-                text = "No apps found",
+                text = stringResource(R.string.thermal_no_apps),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Install some apps to manage thermal profiles",
+                text = stringResource(R.string.thermal_no_apps_summary),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center

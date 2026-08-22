@@ -16,8 +16,14 @@ fun dlog(tag: String, msg: String) {
 }
 
 object Logging {
+    /**
+     * Debug logs are gated: enable with `setprop log.tag.XMParts D`
+     * (or per component, e.g. `log.tag.ThermalService`).
+     */
     fun d(tag: String, msg: String) {
-        Log.d("$MAIN_TAG-$tag", msg)
+        if (Log.isLoggable(MAIN_TAG, Log.DEBUG) || Log.isLoggable(tag, Log.DEBUG)) {
+            Log.d("$MAIN_TAG-$tag", msg)
+        }
     }
     
     fun i(tag: String, msg: String) {

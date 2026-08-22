@@ -5,7 +5,7 @@
 
 package org.lineageos.settings.thermal.model
 
-import android.graphics.drawable.Drawable
+import androidx.compose.ui.graphics.ImageBitmap
 import org.lineageos.settings.thermal.ThermalUtils.ThermalState
 
 data class ThermalUiState(
@@ -18,7 +18,7 @@ data class ThermalUiState(
 data class AppThermalState(
     val packageName: String,
     val label: String,
-    val icon: Drawable,
+    val icon: ImageBitmap,
     val currentState: ThermalState
 ) {
     override fun equals(other: Any?): Boolean {
