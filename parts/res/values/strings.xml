@@ -76,4 +76,39 @@
     <string name="image_preview_page_content_description">Preview %1$d of %2$d</string>
     <string name="image_preview_next_page_content_description">Next</string>
     <string name="image_preview_previous_page_content_description">Previous</string>
+
+    <!-- Auto-brightness correction -->
+    <string name="als_correction_title">Auto-brightness correction</string>
+    <string name="als_dashboard_summary">Compensates for screen content affecting the light sensor</string>
+    <string name="als_enable">Content correction</string>
+    <string name="als_enable_summary">Compensates for screen glow affecting the sensor.</string>
+    <string name="als_state_label">Status: %1$s</string>
+    <string name="als_state_active">active</string>
+    <string name="als_state_capture_failed">capture unavailable</string>
+    <string name="als_state_idle">idle</string>
+    <string name="als_state_off">disabled</string>
+    <string name="als_state_unknown">no data yet</string>
+    <string name="als_strength">Correction strength</string>
+    <string name="als_strength_summary">Sets how much screen glow is subtracted.</string>
+    <string name="als_strength_value">%1$d</string>
+    <string name="als_strength_value_default">%1$d (default)</string>
+    <string name="als_strength_weak">Weaker</string>
+    <string name="als_strength_strong">Stronger</string>
+    <string name="als_interval">Response speed</string>
+    <string name="als_interval_summary">More often means faster response but higher power use.</string>
+    <string name="als_interval_fast">Fast</string>
+    <string name="als_interval_balanced">Balanced</string>
+    <string name="als_interval_power_save">Saver</string>
+    <string name="als_advanced">Advanced</string>
+    <string name="als_advanced_show">Show</string>
+    <string name="als_advanced_hide">Hide</string>
+    <string name="als_ref_luma_value">Dark-content threshold: %1$s</string>
+    <string name="als_ref_luma_summary">Excludes dark content from correction.</string>
+    <string name="als_gamma_value">Panel gamma: %1$s</string>
+    <string name="als_gamma_summary">Converts pixel brightness to emitted light.</string>
+    <string name="als_reset">Restore default value</string>
+    <string name="als_reset_all">Restore all default values</string>
+    <string name="als_unavailable">Auto-brightness correction is not available in this build.</string>
+    <string name="als_error">Unable to apply setting: %1$s</string>
+    <string name="als_footer_summary">The under-display light sensor can be illuminated by bright screen content. Correction estimates the glow above the sensor and subtracts it from the reading.\n\nIncrease correction strength if auto-brightness still rises on a bright background. Decrease it if brightness becomes too low on a bright background.\n\nDRM video, apps using FLAG_SECURE, and protected playback surfaces cannot be analyzed. For such content, readings pass through unchanged and the status shows “capture unavailable”.</string>
 </resources>

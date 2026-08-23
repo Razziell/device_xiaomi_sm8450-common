@@ -65,4 +65,39 @@
     <string name="image_preview_page_content_description">Предпросмотр %1$d из %2$d</string>
     <string name="image_preview_next_page_content_description">Следующее</string>
     <string name="image_preview_previous_page_content_description">Предыдущее</string>
+
+    <!-- Auto-brightness correction -->
+    <string name="als_correction_title">Коррекция автояркости</string>
+    <string name="als_dashboard_summary">Компенсирует влияние содержимого экрана на датчик освещённости</string>
+    <string name="als_enable">Коррекция по содержимому</string>
+    <string name="als_enable_summary">Компенсирует влияние свечения экрана на датчик.</string>
+    <string name="als_state_label">Состояние: %1$s</string>
+    <string name="als_state_active">активна</string>
+    <string name="als_state_capture_failed">захват недоступен</string>
+    <string name="als_state_idle">ожидание</string>
+    <string name="als_state_off">отключена</string>
+    <string name="als_state_unknown">данных пока нет</string>
+    <string name="als_strength">Сила коррекции</string>
+    <string name="als_strength_summary">Задаёт величину вычитаемой засветки экрана.</string>
+    <string name="als_strength_value">%1$d</string>
+    <string name="als_strength_value_default">%1$d (по умолчанию)</string>
+    <string name="als_strength_weak">Слабее</string>
+    <string name="als_strength_strong">Сильнее</string>
+    <string name="als_interval">Скорость реакции</string>
+    <string name="als_interval_summary">Чаще — быстрее реакция, но выше расход энергии.</string>
+    <string name="als_interval_fast">Быстро</string>
+    <string name="als_interval_balanced">Баланс</string>
+    <string name="als_interval_power_save">Экономия</string>
+    <string name="als_advanced">Расширенные</string>
+    <string name="als_advanced_show">Показать</string>
+    <string name="als_advanced_hide">Скрыть</string>
+    <string name="als_ref_luma_value">Порог тёмного содержимого: %1$s</string>
+    <string name="als_ref_luma_summary">Исключает тёмное содержимое из коррекции.</string>
+    <string name="als_gamma_value">Гамма панели: %1$s</string>
+    <string name="als_gamma_summary">Преобразование яркости пикселей в свечение.</string>
+    <string name="als_reset">Восстановить значение по умолчанию</string>
+    <string name="als_reset_all">Восстановить все значения по умолчанию</string>
+    <string name="als_unavailable">Коррекция автояркости недоступна в этой сборке.</string>
+    <string name="als_error">Не удалось применить настройку: %1$s</string>
+    <string name="als_footer_summary">Подэкранный датчик может засвечиваться светлым содержимым. Коррекция оценивает свечение над датчиком и вычитает его из показаний.\n\nУвеличьте силу коррекции, если на светлом фоне автояркость всё ещё повышается. Уменьшите, если на светлом фоне яркость становится слишком низкой.\n\nDRM-видео, приложения с FLAG_SECURE и защищённые поверхности проанализировать нельзя. Для такого содержимого показания передаются без изменений, а состояние отображается как «захват недоступен».</string>
 </resources>

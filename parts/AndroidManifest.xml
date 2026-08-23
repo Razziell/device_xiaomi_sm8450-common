@@ -120,6 +120,41 @@
                 android:value="primary_profile_only" />
         </activity>
 
+        <!-- Auto-brightness (under-display ALS) correction -->
+        <provider
+            android:name=".als.AlsCorrectionSwitchProvider"
+            android:authorities="org.lineageos.settings.als.switch"
+            android:exported="true"
+            android:permission="android.permission.WRITE_SECURE_SETTINGS" />
+
+        <activity
+            android:name=".als.AlsCorrectionActivity"
+            android:label="@string/als_correction_title"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.android.settings.action.IA_SETTINGS" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <meta-data
+                android:name="com.android.settings.category"
+                android:value="com.android.settings.category.ia.display" />
+            <meta-data
+                android:name="com.android.settings.summary"
+                android:resource="@string/als_dashboard_summary" />
+            <meta-data
+                android:name="com.android.settings.group_key"
+                android:value="category_brightness" />
+            <meta-data
+                android:name="com.android.settings.keyhint"
+                android:value="als_correction" />
+            <meta-data
+                android:name="com.android.settings.switch_uri"
+                android:value="content://org.lineageos.settings.als.switch" />
+            <meta-data
+                android:name="com.android.settings.profile"
+                android:value="primary_profile_only" />
+        </activity>
+
         <!-- Display Saturation tile service -->
         <service
             android:name=".saturation.SaturationTileService"
