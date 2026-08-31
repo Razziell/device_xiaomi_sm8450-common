@@ -80,6 +80,14 @@ blob_fixups: blob_fixups_user_type = {
         .replace_needed(
             'libgrpc++_unsecure.so', 'libgrpc++_unsecure_prebuilt.so'
         ),
+    'vendor/etc/init/qcrilNrd.rc': blob_fixup()
+        .regex_replace(
+            r'(?m)\n^on property:persist\.radio\.restart_rild=1\n'
+            r'(?:[ \t]+.*\n)*'
+            r'^on property:persist\.radio\.restart_rild=2\n'
+            r'(?:[ \t]+.*\n)*',
+            '\n',
+        ),
     (
        'vendor/etc/media_codecs_cape.xml',
        'vendor/etc/media_codecs_diwali_v0.xml',

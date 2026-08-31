@@ -1,0 +1,2 @@
+get_prop(hal_dms_default, vendor_audio_prop)
+set_prop(hal_dms_default, vendor_audio_prop)
