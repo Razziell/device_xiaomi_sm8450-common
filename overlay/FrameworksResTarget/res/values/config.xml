@@ -34,14 +34,6 @@
     <!-- Whether the device enable the non-standalone (NSA) mode of 5G NR.-->
     <bool name="config_telephony5gNonStandalone">true</bool>
 
-    <!-- Auto brightness debouce -->
-    <integer name="config_autoBrightnessBrighteningLightDebounce">4000</integer>
-    <integer name="config_autoBrightnessDarkeningLightDebounce">200</integer>
-
-    <!-- Slow down how fast brightness can increase (white screen at night issue) -->
-    <integer name="config_screenBrightnessRampRateFast">200</integer> <!-- ms per step -->
-    <integer name="config_screenBrightnessRampRateSlow">200</integer>
-
     <!-- Hysteresis: prevents sudden brightness jumps -->
     <integer name="config_autoBrightnessBrighteningHysteresis">15</integer> <!-- 15% -->
     <integer name="config_autoBrightnessDarkeningHysteresis">5</integer>  <!-- 5% -->
