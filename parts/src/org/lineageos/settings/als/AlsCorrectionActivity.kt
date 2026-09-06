@@ -19,13 +19,15 @@ import org.lineageos.settings.ui.theme.XiaomiPartsTheme
 
 class AlsCorrectionActivity : ComponentActivity() {
 
+    private lateinit var viewModel: AlsCorrectionViewModel
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        val viewModel = ViewModelProvider(
+        viewModel = ViewModelProvider(
             this,
-            AlsCorrectionViewModelFactory(AlsCorrectionRepository())
+            AlsCorrectionViewModelFactory(AlsCorrectionRepository(applicationContext))
         )[AlsCorrectionViewModel::class.java]
 
         setContent {
@@ -43,8 +45,13 @@ class AlsCorrectionActivity : ComponentActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        viewModel.startObserving()
+    }
+
     override fun onPause() {
+        viewModel.stopObserving()
         super.onPause()
-        AlsCorrectionSwitchProvider.notifyChanged(this)
     }
 }

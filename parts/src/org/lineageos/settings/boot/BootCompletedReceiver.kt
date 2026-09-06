@@ -10,6 +10,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import org.lineageos.settings.als.AlsCorrectionRepository
 import org.lineageos.settings.saturation.SaturationRepository
 import org.lineageos.settings.saturation.SurfaceFlingerSaturationController
 import org.lineageos.settings.thermal.ThermalUtils
@@ -33,6 +34,10 @@ class BootCompletedReceiver : BroadcastReceiver() {
 
         Thread({
             try {
+                AlsCorrectionRepository(appContext).migrateLegacyInterval().onFailure {
+                    Log.e(TAG, "Failed to migrate ALS correction interval", it)
+                }
+
                 runCatching {
                     ThermalUtils.getInstance(appContext).startService()
                 }.onFailure {

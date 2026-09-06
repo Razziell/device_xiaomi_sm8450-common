@@ -12,6 +12,8 @@ import android.database.Cursor
 import android.net.Uri
 import android.os.Bundle
 import android.os.SystemProperties
+import android.util.Log
+import org.lineageos.settings.R
 
 /**
  * Exposes the correction master switch to the Settings dashboard tile.
@@ -28,14 +30,18 @@ class AlsCorrectionSwitchProvider : ContentProvider() {
         METHOD_IS_CHECKED -> Bundle().apply {
             putBoolean(
                 EXTRA_SWITCH_CHECKED_STATE,
-                SystemProperties.getBoolean(AlsCorrectionSpec.PROP_ENABLED, true)
+                isAvailable() && SystemProperties.getBoolean(AlsCorrectionSpec.PROP_ENABLED, true)
             )
         }
 
         METHOD_ON_CHECKED_CHANGED -> Bundle().apply {
-            // A missing extras bundle must not stringify a null Boolean into "null".
-            val checked = extras?.getBoolean(EXTRA_SWITCH_CHECKED_STATE, true) ?: true
+            // Reject malformed calls instead of silently enabling correction.
+            @Suppress("DEPRECATION")
+            val checked = extras?.get(EXTRA_SWITCH_CHECKED_STATE) as? Boolean
             val result = runCatching {
+                require(checked != null && isAvailable()) {
+                    context?.getString(R.string.als_switch_invalid) ?: "Invalid switch request"
+                }
                 SystemProperties.set(AlsCorrectionSpec.PROP_ENABLED, checked.toString())
             }
             putBoolean(EXTRA_SWITCH_SET_CHECKED_ERROR, result.isFailure)
@@ -43,12 +49,15 @@ class AlsCorrectionSwitchProvider : ContentProvider() {
                 putString(EXTRA_SWITCH_SET_CHECKED_ERROR_MESSAGE, it)
             }
             if (result.isSuccess) {
-                context?.contentResolver?.notifyChange(IS_CHECKED_URI, null)
+                context?.let { notifyChanged(it) }
             }
         }
 
         else -> null
     }
+
+    private fun isAvailable(): Boolean =
+        SystemProperties.get(AlsCorrectionSpec.PROP_IMPL_CLASS, "").isNotEmpty()
 
     override fun query(
         uri: Uri,
@@ -85,7 +94,9 @@ class AlsCorrectionSwitchProvider : ContentProvider() {
         private const val EXTRA_SWITCH_SET_CHECKED_ERROR_MESSAGE = "set_checked_error_message"
 
         fun notifyChanged(context: Context) {
-            context.contentResolver.notifyChange(IS_CHECKED_URI, null)
+            // Notification failure must not turn a successful property write into a failed save.
+            runCatching { context.contentResolver.notifyChange(IS_CHECKED_URI, null) }
+                .onFailure { Log.w("AlsCorrectionSwitch", "Cannot notify dashboard", it) }
         }
 
         private val IS_CHECKED_URI: Uri = Uri.Builder()
