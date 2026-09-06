@@ -87,7 +87,7 @@
     <string name="als_state_capture_failed">capture unavailable</string>
     <string name="als_state_idle">idle</string>
     <string name="als_state_off">disabled</string>
-    <string name="als_state_unknown">no data yet</string>
+    <string name="als_state_unknown">waiting for fresh data</string>
     <string name="als_strength">Correction strength</string>
     <string name="als_strength_summary">Sets how much screen glow is subtracted.</string>
     <string name="als_strength_value">%1$d</string>

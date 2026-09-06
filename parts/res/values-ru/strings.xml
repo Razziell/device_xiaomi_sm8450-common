@@ -76,7 +76,7 @@
     <string name="als_state_capture_failed">захват недоступен</string>
     <string name="als_state_idle">ожидание</string>
     <string name="als_state_off">отключена</string>
-    <string name="als_state_unknown">данных пока нет</string>
+    <string name="als_state_unknown">ожидание свежих данных</string>
     <string name="als_strength">Сила коррекции</string>
     <string name="als_strength_summary">Задаёт величину вычитаемой засветки экрана.</string>
     <string name="als_strength_value">%1$d</string>

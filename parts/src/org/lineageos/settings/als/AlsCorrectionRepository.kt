@@ -131,5 +131,5 @@ class AlsCorrectionRepository {
         String.format(Locale.US, "%.2f", value)
 
     private fun getFloat(property: String, default: Float): Float =
-        SystemProperties.get(property, "").toFloatOrNull() ?: default
+        SystemProperties.get(property, "").toFloatOrNull()?.takeIf { it.isFinite() } ?: default
 }
