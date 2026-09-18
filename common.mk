@@ -311,12 +311,17 @@ PRODUCT_PACKAGES += \
 PRODUCT_USE_DYNAMIC_PARTITIONS := true
 
 # Power
+# Keep the vendor compatibility shim even when a device supplies its own HAL.
 PRODUCT_PACKAGES += \
-    android.hardware.power-service.lineage-libperfmgr \
     libqti-perfd-client
+
+ifneq ($(TARGET_USES_DEVICE_POWERHAL),true)
+PRODUCT_PACKAGES += \
+    android.hardware.power-service.lineage-libperfmgr
 
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/configs/powerhint.json:$(TARGET_COPY_OUT_VENDOR)/etc/powerhint.json
+endif
 
 # Powershare
 $(call soong_config_set,lineage_powershare,powershare_path,/sys/class/qcom-battery/reverse_chg_mode)
@@ -358,9 +363,15 @@ PRODUCT_SOONG_NAMESPACES += \
     hardware/google/interfaces \
     hardware/google/pixel \
     hardware/lineage/interfaces/power-libperfmgr \
-    hardware/qcom-caf/common/libqti-perfd-client \
     hardware/xiaomi \
     vendor/qcom/opensource/usb/etc
+
+# Same module name in separate namespaces: export only the selected client to
+# Make. A device-owned client must preserve the libqti-perfd-client SONAME.
+ifneq ($(TARGET_USES_DEVICE_PERF_CLIENT),true)
+PRODUCT_SOONG_NAMESPACES += \
+    hardware/qcom-caf/common/libqti-perfd-client
+endif
 
 # task profile
 PRODUCT_COPY_FILES += \
