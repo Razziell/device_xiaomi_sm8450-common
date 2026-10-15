@@ -68,11 +68,7 @@
 
     <!-- Auto-brightness correction -->
     <string name="als_correction_title">Коррекция автояркости</string>
-    <string name="als_illustration_screen">Свет экрана</string>
-    <string name="als_illustration_sensor">Датчик света</string>
-    <string name="als_illustration_correction">Компенсация</string>
-    <string name="als_illustration_caption">Учитывает свет экрана при расчёте автояркости.</string>
-    <string name="als_illustration_description">Схема: свет экрана попадает на подэкранный датчик. Компенсация вычитает оценённый вклад этого света из показаний.</string>
+    <string name="als_illustration_description">Схема: свет экрана компенсируется перед использованием показаний подэкранного датчика в автояркости.</string>
     <string name="als_dashboard_summary">Компенсация засветки датчика</string>
     <string name="als_enable">Коррекция автояркости</string>
     <string name="als_enable_summary">Уменьшает влияние экрана на датчик освещённости.</string>

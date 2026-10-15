@@ -74,16 +74,12 @@ fun AppThermalItem(
             
             // Thermal state dropdown
             Box {
-                // Rounded chip button for the dropdown selector
+                // Rounded chip indicator for the dropdown selector
                 Row(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp)) // Makes it rounded
-                        .background(MaterialTheme.colorScheme.secondaryContainer) // Sets the background color with better contrast
-                        .clickable {
-                            haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
-                            expanded = true
-                        }
-                        .padding(horizontal = 12.dp, vertical = 8.dp), // Padding around the content
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.secondaryContainer)
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {

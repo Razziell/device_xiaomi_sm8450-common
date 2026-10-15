@@ -79,11 +79,7 @@
 
     <!-- Auto-brightness correction -->
     <string name="als_correction_title">Auto-brightness correction</string>
-    <string name="als_illustration_screen">Screen light</string>
-    <string name="als_illustration_sensor">Light sensor</string>
-    <string name="als_illustration_correction">Compensation</string>
-    <string name="als_illustration_caption">Accounts for screen light in auto-brightness.</string>
-    <string name="als_illustration_description">Diagram: screen light reaches the under-display sensor. Compensation subtracts its estimated contribution from light readings.</string>
+    <string name="als_illustration_description">Diagram: screen light is compensated before the under-display sensor reading is used for auto-brightness.</string>
     <string name="als_dashboard_summary">Screen-glow compensation</string>
     <string name="als_enable">Auto-brightness correction</string>
     <string name="als_enable_summary">Reduces screen light affecting the sensor.</string>

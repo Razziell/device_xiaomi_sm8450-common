@@ -7,6 +7,7 @@ package org.lineageos.settings.speaker
 
 import android.content.Context
 import android.media.AudioAttributes
+import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.MediaPlayer
 import android.util.Log
@@ -17,6 +18,13 @@ class SpeakerCleaner(context: Context) {
 
     private val appContext = context.applicationContext
     private val audioManager = appContext.getSystemService(AudioManager::class.java)
+    private val audioAttributes = AudioAttributes.Builder()
+        .setUsage(AudioAttributes.USAGE_MEDIA)
+        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+        .build()
+    private val audioFocusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
+        .setAudioAttributes(audioAttributes)
+        .build()
 
     @Volatile
     private var mediaPlayer: MediaPlayer? = null
@@ -26,16 +34,12 @@ class SpeakerCleaner(context: Context) {
         stopLocked()
 
         return runCatching {
+            audioManager?.requestAudioFocus(audioFocusRequest)
             audioManager?.setParameters(EARPIECE_CLEAN_ON)
             val player = MediaPlayer()
             mediaPlayer = player
             player.apply {
-                setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_MEDIA)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                        .build()
-                )
+                setAudioAttributes(audioAttributes)
                 isLooping = true
                 setVolume(1f, 1f)
 
@@ -67,6 +71,7 @@ class SpeakerCleaner(context: Context) {
         mediaPlayer = null
         runCatching { audioManager?.setParameters(EARPIECE_CLEAN_OFF) }
             .onFailure { Log.w(TAG, "Failed to disable speaker cleaning parameter", it) }
+        runCatching { audioManager?.abandonAudioFocusRequest(audioFocusRequest) }
     }
 
     private companion object {

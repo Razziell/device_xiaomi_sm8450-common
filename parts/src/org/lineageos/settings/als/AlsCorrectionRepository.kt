@@ -123,6 +123,7 @@ class AlsCorrectionRepository(context: Context) {
     fun setIntervalMs(intervalMs: Int): Result<Unit> = runCatching {
         require(intervalMs in AlsCorrectionSpec.INTERVAL_CHOICES)
         SystemProperties.set(AlsCorrectionSpec.PROP_INTERVAL, intervalMs.toString())
+        SystemProperties.reportSyspropChanged()
     }
 
     fun resetK(): Result<Unit> = clear(AlsCorrectionSpec.PROP_K)
@@ -140,12 +141,14 @@ class AlsCorrectionRepository(context: Context) {
         )) {
             SystemProperties.set(property, "")
         }
+        SystemProperties.reportSyspropChanged()
     }
 
     private fun clear(property: String): Result<Unit> = set(property, "")
 
     private fun set(property: String, value: String): Result<Unit> = runCatching {
         SystemProperties.set(property, value)
+        SystemProperties.reportSyspropChanged()
     }
 
     private fun setFloat(property: String, value: Float, range: ClosedFloatingPointRange<Float>) =
@@ -154,6 +157,7 @@ class AlsCorrectionRepository(context: Context) {
             // The property parser needs a dot. Display formatting uses the user's locale instead.
             val text = String.format(Locale.US, "%.2f", value.coerceIn(range))
             SystemProperties.set(property, text)
+            SystemProperties.reportSyspropChanged()
         }
 
     private fun getFloat(property: String, default: Float): Float =

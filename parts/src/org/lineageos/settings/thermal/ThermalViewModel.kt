@@ -5,6 +5,7 @@
 
 package org.lineageos.settings.thermal
 
+import android.content.Context
 import android.content.pm.LauncherApps
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -23,6 +24,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.lineageos.settings.thermal.ThermalUtils.ThermalState
 import org.lineageos.settings.thermal.model.AppThermalState
@@ -30,14 +33,17 @@ import org.lineageos.settings.thermal.model.ThermalUiState
 import org.lineageos.settings.utils.Logging
 
 class ThermalViewModel(
-    private val thermalUtils: ThermalUtils,
+    private val appContext: Context,
     private val launcherApps: LauncherApps
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ThermalUiState())
     val uiState: StateFlow<ThermalUiState> = _uiState.asStateFlow()
 
+    private val ioMutex = Mutex()
     private var launcherCallbackRegistered = false
+
+    private fun thermalUtils(): ThermalUtils = ThermalUtils.getInstance(appContext)
 
     private val launcherAppsCallback = object : LauncherApps.Callback() {
         override fun onPackageRemoved(packageName: String, user: UserHandle) {
@@ -76,12 +82,14 @@ class ThermalViewModel(
     }
 
     init {
-        // Initialize with current thermal state
-        _uiState.update { it.copy(isEnabled = thermalUtils.enabled) }
-
-        // Load apps if thermal is enabled
-        if (thermalUtils.enabled) {
-            loadApps()
+        viewModelScope.launch {
+            val enabled = withContext(Dispatchers.IO) {
+                ioMutex.withLock { thermalUtils().enabled }
+            }
+            _uiState.update { it.copy(isEnabled = enabled) }
+            if (enabled && _uiState.value.apps.isEmpty()) {
+                loadApps()
+            }
         }
 
         // The no-handler overload binds to the current (main) Looper.
@@ -101,8 +109,10 @@ class ThermalViewModel(
 
         viewModelScope.launch(Dispatchers.IO) {
             // Persists the switch and, when disabling, writes the default
-            // profile to sysfs; keep it off the main thread.
-            thermalUtils.enabled = enabled
+            // profile to sysfs; serialized and kept off the main thread.
+            ioMutex.withLock {
+                thermalUtils().enabled = enabled
+            }
         }
 
         if (enabled && _uiState.value.apps.isEmpty()) {
@@ -113,7 +123,9 @@ class ThermalViewModel(
     fun updateAppThermalState(packageName: String, state: ThermalState) {
         Logging.d(TAG, "updateAppThermalState: $packageName -> $state")
         viewModelScope.launch(Dispatchers.IO) {
-            thermalUtils.writePackage(packageName, state.id)
+            ioMutex.withLock {
+                thermalUtils().writePackage(packageName, state.id)
+            }
         }
 
         // Update UI state
@@ -133,10 +145,29 @@ class ThermalViewModel(
     fun resetProfiles() {
         Logging.d(TAG, "resetProfiles")
         viewModelScope.launch {
-            withContext(Dispatchers.IO) {
-                thermalUtils.resetProfiles()
+            val existingApps = _uiState.value.apps
+            if (existingApps.isEmpty()) {
+                withContext(Dispatchers.IO) {
+                    ioMutex.withLock { thermalUtils().resetProfiles() }
+                }
+                loadApps()
+                return@launch
             }
-            loadApps()
+
+            val states = withContext(Dispatchers.IO) {
+                ioMutex.withLock {
+                    val utils = thermalUtils()
+                    utils.resetProfiles()
+                    utils.resolveStates(existingApps.map { it.packageName })
+                }
+            }
+            _uiState.update { currentState ->
+                currentState.copy(
+                    apps = currentState.apps.map { app ->
+                        app.copy(currentState = states[app.packageName] ?: ThermalState.DEFAULT)
+                    }
+                )
+            }
         }
     }
 
@@ -152,9 +183,11 @@ class ThermalViewModel(
 
                     // Resolve every profile in one pass; expensive PackageManager
                     // queries are shared across all packages.
-                    val states = thermalUtils.resolveStates(
-                        activities.map { it.componentName.packageName }
-                    )
+                    val states = ioMutex.withLock {
+                        thermalUtils().resolveStates(
+                            activities.map { it.componentName.packageName }
+                        )
+                    }
 
                     val collator = Collator.getInstance()
                     activities
@@ -192,7 +225,9 @@ class ThermalViewModel(
 
     private fun removeApp(packageName: String) {
         viewModelScope.launch(Dispatchers.IO) {
-            thermalUtils.removePackage(packageName)
+            ioMutex.withLock {
+                thermalUtils().removePackage(packageName)
+            }
         }
         _uiState.update { currentState ->
             currentState.copy(
@@ -206,11 +241,14 @@ class ThermalViewModel(
             val info = launcherApps.getActivityList(packageName, Process.myUserHandle())
                 .firstOrNull() ?: return@withContext
 
+            val state = ioMutex.withLock {
+                thermalUtils().getStateForPackage(info.componentName.packageName)
+            }
             val newApp = AppThermalState(
                 packageName = info.componentName.packageName,
                 label = info.label.toString(),
                 icon = info.getIcon(0).toImageBitmap(ICON_SIZE_PX),
-                currentState = thermalUtils.getStateForPackage(info.componentName.packageName)
+                currentState = state
             )
 
             val collator = Collator.getInstance()
@@ -261,13 +299,13 @@ class ThermalViewModel(
  * Factory for creating ThermalViewModel with dependencies.
  */
 class ThermalViewModelFactory(
-    private val thermalUtils: ThermalUtils,
+    private val appContext: Context,
     private val launcherApps: LauncherApps
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(ThermalViewModel::class.java)) {
-            return ThermalViewModel(thermalUtils, launcherApps) as T
+            return ThermalViewModel(appContext, launcherApps) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

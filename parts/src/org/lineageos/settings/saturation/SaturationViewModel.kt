@@ -39,7 +39,6 @@ class SaturationViewModel(
 
     init {
         viewModelScope.launch {
-            applyValue(initialValue)
             pendingValues.collectLatest(::applyValue)
         }
     }

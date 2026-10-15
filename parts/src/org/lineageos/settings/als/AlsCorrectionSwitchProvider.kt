@@ -43,6 +43,7 @@ class AlsCorrectionSwitchProvider : ContentProvider() {
                     context?.getString(R.string.als_switch_invalid) ?: "Invalid switch request"
                 }
                 SystemProperties.set(AlsCorrectionSpec.PROP_ENABLED, checked.toString())
+                SystemProperties.reportSyspropChanged()
             }
             putBoolean(EXTRA_SWITCH_SET_CHECKED_ERROR, result.isFailure)
             result.exceptionOrNull()?.message?.let {

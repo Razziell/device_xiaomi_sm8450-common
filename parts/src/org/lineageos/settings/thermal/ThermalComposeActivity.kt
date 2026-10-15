@@ -25,7 +25,6 @@ import org.lineageos.settings.utils.Logging
  */
 class ThermalComposeActivity : ComponentActivity() {
 
-    private lateinit var thermalUtils: ThermalUtils
     private lateinit var launcherApps: LauncherApps
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -35,7 +34,7 @@ class ThermalComposeActivity : ComponentActivity() {
         Logging.d(TAG, "onCreate")
 
         // Initialize dependencies
-        thermalUtils = ThermalUtils.getInstance(this)
+        val appContext = applicationContext
         launcherApps = getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
 
         setContent {
@@ -46,14 +45,14 @@ class ThermalComposeActivity : ComponentActivity() {
                 ) {
                     val viewModel: ThermalViewModel = viewModel(
                         factory = ThermalViewModelFactory(
-                            thermalUtils = thermalUtils,
+                            appContext = appContext,
                             launcherApps = launcherApps
                         )
                     )
 
                     ThermalScreen(
                         viewModel = viewModel,
-                        onBackPressed = { finish() }
+                        onBackPressed = onBackPressedDispatcher::onBackPressed
                     )
                 }
             }
