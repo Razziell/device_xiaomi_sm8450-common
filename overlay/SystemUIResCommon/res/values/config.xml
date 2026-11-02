@@ -16,6 +16,9 @@
     <!-- Doze: does this device support STATE_DOZE?  -->
     <bool name="doze_display_state_supported">true</bool>
 
+    <!-- Doze: check proximity / pocket state before waking on double-tap -->
+    <bool name="doze_double_tap_proximity_check">true</bool>
+
     <!-- FPSInfoService FPS node file path -->
     <string name="config_fpsInfoSysNode" translatable="false">/sys/class/drm/sde-crtc-0/measured_fps</string>
 </resources>
