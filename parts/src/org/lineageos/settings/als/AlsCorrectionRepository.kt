@@ -21,7 +21,7 @@ object AlsCorrectionSpec {
     const val PROP_INTERVAL = "persist.sys.als_correction.interval_ms"
 
     /* Defaults and hard limits must match MarbleAlsCorrection. */
-    const val K_DEFAULT = 650
+    const val K_DEFAULT = 550
     const val REF_LUMA_DEFAULT = 0.14f
     const val GAMMA_DEFAULT = 2.2f
     const val INTERVAL_DEFAULT = 500
