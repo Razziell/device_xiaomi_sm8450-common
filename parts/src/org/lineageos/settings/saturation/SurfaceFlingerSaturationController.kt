@@ -8,6 +8,7 @@ package org.lineageos.settings.saturation
 import android.os.IBinder
 import android.os.Parcel
 import android.os.ServiceManager
+import android.os.SystemProperties
 import android.util.Log
 
 /** Isolates the device-specific SurfaceFlinger transaction from UI code. */
@@ -25,14 +26,16 @@ class SurfaceFlingerSaturationController {
         val binder = getSurfaceFlinger()
             ?: error("SurfaceFlinger service is unavailable")
         val data = Parcel.obtain()
+        val saturation = value.toSurfaceFlingerValue()
 
         try {
             data.writeInterfaceToken(SURFACE_COMPOSER_INTERFACE)
-            data.writeFloat(value.toSurfaceFlingerValue())
+            data.writeFloat(saturation)
 
             check(binder.transact(SET_SATURATION_TRANSACTION, data, null, 0)) {
                 "SurfaceFlinger rejected the saturation transaction"
             }
+            publishApplied(saturation)
         } catch (error: Exception) {
             surfaceFlinger = null
             throw error
@@ -41,6 +44,15 @@ class SurfaceFlingerSaturationController {
         }
     }.onFailure {
         Log.e(TAG, "Failed to apply saturation value $value", it)
+    }
+
+    /**
+     * SurfaceFlinger cannot be asked for its saturation. The under-display ALS correction needs
+     * the value to know what the panel emits. Failing to publish it must not fail the change.
+     */
+    private fun publishApplied(saturation: Float) {
+        runCatching { SystemProperties.set(APPLIED_SATURATION_PROPERTY, saturation.toString()) }
+            .onFailure { Log.w(TAG, "Cannot publish the applied saturation", it) }
     }
 
     private fun getSurfaceFlinger(): IBinder? {
@@ -60,6 +72,7 @@ class SurfaceFlingerSaturationController {
         const val SURFACE_FLINGER_SERVICE = "SurfaceFlinger"
         const val SURFACE_COMPOSER_INTERFACE = "android.ui.ISurfaceComposer"
         const val SET_SATURATION_TRANSACTION = 1022
+        const val APPLIED_SATURATION_PROPERTY = "sys.parts.sf_saturation"
     }
 }
 
