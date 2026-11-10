@@ -6,8 +6,12 @@
 package org.lineageos.settings.als
 
 import android.content.Context
+import android.os.IBinder
+import android.os.Parcel
+import android.os.ServiceManager
 import android.os.SystemProperties
 import android.provider.Settings
+import android.util.Log
 import java.util.Locale
 
 /** Property values are consumed on ALS callbacks or background content refreshes. */
@@ -45,6 +49,27 @@ object AlsCorrectionSpec {
     const val STATE_OFF = "off"
 }
 
+/**
+ * Tell the corrector in system_server that the enable property changed. It stops polling while
+ * disabled, so without this it resumes only on the next ALS event, which itself goes through
+ * uncorrected. SystemProperties.reportSyspropChanged() is not enough: it only runs the change
+ * callbacks of this process. SYSPROPS_TRANSACTION runs them in the process that owns the
+ * target binder, the same way SettingsLib's SystemPropPoker does. Other parameters need no
+ * notification; the corrector reads them on every ALS event or capture.
+ */
+internal fun notifyAlsCorrector() {
+    // Notification failure must not turn a successful property write into a failed save.
+    runCatching {
+        val displayService = checkNotNull(ServiceManager.checkService(Context.DISPLAY_SERVICE))
+        val data = Parcel.obtain()
+        try {
+            displayService.transact(IBinder.SYSPROPS_TRANSACTION, data, null, 0)
+        } finally {
+            data.recycle()
+        }
+    }.onFailure { Log.w("AlsCorrection", "Cannot notify system_server", it) }
+}
+
 data class AlsCorrectionSettings(
     val enabled: Boolean = true,
     val k: Int = AlsCorrectionSpec.K_DEFAULT,
@@ -72,18 +97,16 @@ class AlsCorrectionRepository(context: Context) {
         }
     }
 
-    fun readSnapshot(): AlsCorrectionSnapshot {
-        migrateLegacyInterval().getOrThrow()
-        return AlsCorrectionSnapshot(
-            settings = readSettings(),
-            state = SystemProperties.get(AlsCorrectionSpec.PROP_STATE, ""),
-            autoBrightnessEnabled = Settings.System.getInt(
-                context.contentResolver,
-                Settings.System.SCREEN_BRIGHTNESS_MODE,
-                Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL
-            ) == Settings.System.SCREEN_BRIGHTNESS_MODE_AUTOMATIC
-        )
-    }
+    /** Polled once a second while the screen is visible, so it must not write anything. */
+    fun readSnapshot() = AlsCorrectionSnapshot(
+        settings = readSettings(),
+        state = SystemProperties.get(AlsCorrectionSpec.PROP_STATE, ""),
+        autoBrightnessEnabled = Settings.System.getInt(
+            context.contentResolver,
+            Settings.System.SCREEN_BRIGHTNESS_MODE,
+            Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL
+        ) == Settings.System.SCREEN_BRIGHTNESS_MODE_AUTOMATIC
+    )
 
     /** Reflect the corrector's hard clamps, not the narrower slider ranges. No writes on read. */
     fun readSettings() = AlsCorrectionSettings(
@@ -102,6 +125,7 @@ class AlsCorrectionRepository(context: Context) {
     fun setEnabled(enabled: Boolean): Result<Unit> {
         val result = set(AlsCorrectionSpec.PROP_ENABLED, enabled.toString())
         if (result.isSuccess) {
+            notifyAlsCorrector()
             // Notify after persistence, not on Activity.onPause (which may precede the write).
             AlsCorrectionSwitchProvider.notifyChanged(context)
         }
@@ -123,7 +147,6 @@ class AlsCorrectionRepository(context: Context) {
     fun setIntervalMs(intervalMs: Int): Result<Unit> = runCatching {
         require(intervalMs in AlsCorrectionSpec.INTERVAL_CHOICES)
         SystemProperties.set(AlsCorrectionSpec.PROP_INTERVAL, intervalMs.toString())
-        SystemProperties.reportSyspropChanged()
     }
 
     fun resetK(): Result<Unit> = clear(AlsCorrectionSpec.PROP_K)
@@ -141,14 +164,12 @@ class AlsCorrectionRepository(context: Context) {
         )) {
             SystemProperties.set(property, "")
         }
-        SystemProperties.reportSyspropChanged()
     }
 
     private fun clear(property: String): Result<Unit> = set(property, "")
 
     private fun set(property: String, value: String): Result<Unit> = runCatching {
         SystemProperties.set(property, value)
-        SystemProperties.reportSyspropChanged()
     }
 
     private fun setFloat(property: String, value: Float, range: ClosedFloatingPointRange<Float>) =
@@ -157,7 +178,6 @@ class AlsCorrectionRepository(context: Context) {
             // The property parser needs a dot. Display formatting uses the user's locale instead.
             val text = String.format(Locale.US, "%.2f", value.coerceIn(range))
             SystemProperties.set(property, text)
-            SystemProperties.reportSyspropChanged()
         }
 
     private fun getFloat(property: String, default: Float): Float =

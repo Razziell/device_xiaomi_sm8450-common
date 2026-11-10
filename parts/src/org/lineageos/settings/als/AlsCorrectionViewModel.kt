@@ -50,8 +50,12 @@ class AlsCorrectionViewModel(
     // Main-thread only. Preserve newer requested values while older writes/readbacks finish.
     private val pending = mutableMapOf<Field, Int>()
     private var confirmedSettings = _uiState.value.settings
+    // Main-thread only. Set by onCleared(), after which the write queue is closed.
+    private var cleared = false
 
     init {
+        // Once per screen, through the write queue: never from the one-second state poll.
+        write(setOf(Field.INTERVAL), { it }) { repository.migrateLegacyInterval() }
         viewModelScope.launch {
             for (write in writes) {
                 operationMutex.withLock {
@@ -179,7 +183,8 @@ class AlsCorrectionViewModel(
         preview: (AlsCorrectionSettings) -> AlsCorrectionSettings,
         operation: () -> Result<Unit>
     ) {
-        if (!_uiState.value.available) return
+        // A late callback from a screen that is going away is dropped, not fatal.
+        if (cleared || !_uiState.value.available) return
         for (field in fields) pending[field] = (pending[field] ?: 0) + 1
         _uiState.update { it.copy(settings = preview(it.settings)) }
         check(writes.trySend(Write(fields, operation)).isSuccess)
@@ -190,6 +195,7 @@ class AlsCorrectionViewModel(
     }
 
     override fun onCleared() {
+        cleared = true
         writes.close()
         super.onCleared()
     }
